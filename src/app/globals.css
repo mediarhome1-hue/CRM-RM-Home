@@ -1,14 +1,14 @@
 :root {
-  --primary: #002347;
-  --secondary: #c5a059;
+  --primary: #3159C1;
+  --secondary: #3159C1;
   --accent: #d4af37;
   --background: #ffffff;
   --foreground: #002347;
   --muted: #f8f9fa;
   --muted-foreground: #6c757d;
   --border: #e9ecef;
-  --radius: 0.75rem;
-  --shadow: 0 10px 30px -10px rgba(0, 35, 71, 0.1);
+  --radius: 1rem;
+  --shadow: 0 10px 30px -10px rgba(49, 89, 193, 0.2);
   --font-outfit: 'Outfit', sans-serif;
 }
 
