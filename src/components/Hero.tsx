@@ -6,64 +6,87 @@ import { motion } from 'framer-motion';
 
 const Hero = () => {
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden bg-white">
-      {/* Background Image with slight blur/overlay */}
-      <div className="absolute inset-0 z-0">
-        <Image 
-          src="/young-happy-couple-embracing-while-buying-their-first-home-focus-is-woman-holding-new-house-keys.jpg"
-          alt="Casal realizando o sonho da casa própria"
-          fill
-          className="object-cover object-center"
-          priority
-        />
-        {/* Soft overlay to help text readability */}
-        <div className="absolute inset-0 bg-white/10" />
+    <section className="relative min-h-[100dvh] flex items-center bg-white overflow-hidden pt-28 pb-12">
+      {/* Watermark Logo - Hidden on mobile, right-aligned for web */}
+      <div className="hidden md:block absolute inset-0 z-0 opacity-80 pointer-events-none max-w-[1440px] mx-auto px-6 md:px-12">
+        <div className="relative w-full h-full">
+          <Image 
+            src="/Marcadagualogolider.svg"
+            alt="Watermark Shield"
+            fill
+            className="object-contain object-right py-8"
+            priority
+          />
+        </div>
       </div>
 
-      {/* Watermark Logo on the Right */}
-      <div className="absolute right-[-10%] top-1/2 -translate-y-1/2 z-0 opacity-10 w-[60%] h-[80%] pointer-events-none">
-        <Image 
-          src="/Marcadagualogolider.svg"
-          alt="Watermark"
-          fill
-          className="object-contain"
-        />
+      {/* Mobile only Watermark - Centered and very faint */}
+      <div className="md:hidden absolute inset-0 z-0 opacity-80 pointer-events-none flex items-center justify-center p-8">
+        <div className="relative w-full h-[60%]">
+          <Image 
+            src="/Marcadagualogolider.svg"
+            alt="Watermark Shield"
+            fill
+            className="object-contain object-center"
+            priority
+          />
+        </div>
       </div>
 
       <div className="max-w-[1440px] mx-auto px-6 md:px-12 w-full relative z-10">
-        <div className="flex flex-col items-end text-right md:pr-12">
-          <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8 }}
-            className="max-w-xl"
-          >
-            <h1 className="text-[40px] md:text-[64px] font-black text-primary leading-[1.1] mb-6">
-              Nossa Meta <br />
-              é Realizar <br />
-              O Seu Sonho!
-            </h1>
-          </motion.div>
-        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-8 items-center">
+          
+          {/* Left Column: Main Title & Partners */}
+          <div className="flex flex-col items-center md:items-start text-center md:text-left order-2 md:order-1">
+            <motion.div
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8 }}
+              className="mb-10 md:mb-16 w-full"
+            >
+              <h1 className="text-[38px] sm:text-[48px] md:text-[60px] lg:text-[68px] font-black text-primary leading-[1.1]">
+                Nossa Meta <br />
+                é Realizar <br />
+                O Seu Sonho!
+              </h1>
+            </motion.div>
 
-        {/* Partners / Government Logos Box */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-          className="absolute bottom-12 left-6 md:left-12"
-        >
-          <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-xl flex items-center gap-6 border border-white/50">
-            <div className="relative w-[280px] h-[60px] md:w-[320px] md:h-[70px]">
-              <Image 
-                src="/Programas Governo.svg"
-                alt="Programas do Governo: Morar Bem, Minha Casa Minha Vida, Caixa"
-                fill
-                className="object-contain"
-              />
-            </div>
+            {/* Partners / Government Logos Box */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+            >
+              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 inline-block">
+                <div className="relative w-[340px] h-[70px] md:w-[400px] md:h-[80px]">
+                  <Image 
+                    src="/Programas Governo.svg"
+                    alt="Programas do Governo: Morar Bem, Minha Casa Minha Vida, Caixa"
+                    fill
+                    className="object-contain object-center"
+                  />
+                </div>
+              </div>
+            </motion.div>
           </div>
-        </motion.div>
+
+          {/* Right Column: Offer Text */}
+          <div className="flex flex-col items-center md:items-start text-center md:text-left order-1 md:order-2 md:pl-8 lg:pl-12">
+            <motion.div
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.3 }}
+              className="max-w-[500px]"
+            >
+              <h2 className="text-[32px] sm:text-[40px] md:text-[46px] lg:text-[54px] font-semibold text-primary leading-[1.15]">
+                Imóveis prontos <br />
+                e na planta com <br />
+                <span className="text-[#00A3FF] font-black">descontos de <br className="hidden md:block" /> até R$75MIL</span>
+              </h2>
+            </motion.div>
+          </div>
+
+        </div>
       </div>
     </section>
   );

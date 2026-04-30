@@ -1,16 +1,25 @@
 import type { Metadata } from "next";
-import { Outfit } from "next/font/google";
+import { Montserrat } from "next/font/google";
 import "./globals.css";
 
-const outfit = Outfit({
+import Script from "next/script";
+
+const montserrat = Montserrat({
   subsets: ["latin"],
-  weight: ["300", "400", "600", "700"],
-  variable: "--font-outfit",
+  weight: ["400", "500", "600", "700", "800", "900"], // Regular, Medium, Semibold, Bold, ExtraBold, Black
+  variable: "--font-montserrat",
 });
 
 export const metadata: Metadata = {
-  title: "Líder Imobiliária PE | Encontre seu Lar em Pernambuco",
-  description: "A Líder Imobiliária PE oferece os melhores imóveis para venda e aluguel em Pernambuco. Atendimento exclusivo e imóveis de alto padrão.",
+  title: "Líder Imobiliária - A Maior de Pernambuco",
+  description: "A Maior de Pernambuco",
+  icons: {
+    icon: [
+      { url: "/icon.png" },
+      { url: "/icon.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: "/icon.png",
+  },
 };
 
 export default function RootLayout({
@@ -20,10 +29,19 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className={`${outfit.variable} antialiased`}>
+      <body className={`${montserrat.variable} font-sans antialiased`}>
+        <Script src="https://www.googletagmanager.com/gtag/js?id=G-4J2QLMHZWH" strategy="afterInteractive" />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+          
+            gtag('config', 'G-4J2QLMHZWH');
+          `}
+        </Script>
         {children}
       </body>
     </html>
   );
 }
-
