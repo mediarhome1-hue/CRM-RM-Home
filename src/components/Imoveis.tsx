@@ -53,6 +53,28 @@ const properties = [
     bgColor: 'bg-[#1b7a5e]', // Emerald Green
     watermark: '/bela-vista/marcadagua-multtecnica.svg',
     govLogos: ['mcmv', 'caixa']
+  },
+  {
+    id: 3,
+    images: [
+      '/conquista-paulista/capa.jpg',
+      '/conquista-paulista/piscina.jpg',
+      '/conquista-paulista/playground.jpg',
+      '/conquista-paulista/praca.jpg',
+      '/conquista-paulista/quadra.jpg',
+      '/conquista-paulista/redario.jpg'
+    ],
+    logo: '/conquista-paulista/logo-conquista.png',
+    area: '36M²',
+    features: '2 Quartos\nCondomínio clube',
+    location: {
+      city: 'Paulista',
+      neighborhood: 'Ao lado do',
+      details: 'Mix Mateus'
+    },
+    developerLogo: '/conquista-paulista/logo-direcional.svg',
+    bgColor: 'bg-[#4ab9f8]',
+    govLogos: ['morar-bem', 'mcmv', 'caixa']
   }
 ];
 
@@ -154,7 +176,7 @@ export default function Imoveis() {
               {/* Left Column: Info (Order 2 on mobile, 1 on desktop) */}
               <div className="flex flex-col h-full space-y-8 lg:space-y-10 order-2 lg:order-1 mt-4 lg:mt-0">
                 <div className="flex justify-center lg:justify-start">
-                  <div className={`relative ${prop.id === 2 ? 'w-[200px] h-[80px] md:w-[320px] md:h-[120px]' : 'w-[180px] h-[70px] md:w-[260px] md:h-[100px]'}`}>
+                  <div className={`relative ${prop.id === 2 ? 'w-[280px] h-[120px] md:w-[450px] md:h-[160px]' : 'w-[180px] h-[70px] md:w-[260px] md:h-[100px]'}`}>
                     <Image 
                       src={prop.logo}
                       alt="Logo do Empreendimento"
