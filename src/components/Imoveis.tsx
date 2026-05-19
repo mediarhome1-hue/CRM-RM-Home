@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import LeadModal from './LeadModal';
+
 
 const properties = [
   {
@@ -81,8 +83,10 @@ const properties = [
 export default function Imoveis() {
   const [currentPropIndex, setCurrentPropIndex] = useState(0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
 
   const prop = properties[currentPropIndex];
+
 
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % prop.images.length);
@@ -223,7 +227,10 @@ export default function Imoveis() {
                     )}
                   </div>
                   
-                  <button className="bg-[#00a0e3] hover:bg-[#008bc5] transition-colors text-white font-bold py-3 md:py-4 px-12 md:px-14 rounded-full shadow-lg text-base md:text-xl">
+                  <button 
+                    onClick={() => setIsLeadModalOpen(true)}
+                    className="bg-[#00a0e3] hover:bg-[#008bc5] transition-colors text-white font-bold py-3 md:py-4 px-12 md:px-14 rounded-full shadow-lg text-base md:text-xl active:scale-95"
+                  >
                     Saiba mais...
                   </button>
                 </div>
@@ -320,6 +327,16 @@ export default function Imoveis() {
 
         </div>
       </div>
+      
+      {/* Lead Capture Modal */}
+      {prop && (
+        <LeadModal
+          isOpen={isLeadModalOpen}
+          onClose={() => setIsLeadModalOpen(false)}
+          propertyName={prop.id === 1 ? 'Valle Encantado' : prop.id === 2 ? 'Bela Vista' : 'Conquista Paulista'}
+          propertyBg={prop.bgColor}
+        />
+      )}
     </section>
   );
 }
