@@ -3,6 +3,10 @@
 -- Copie e cole este script no painel "SQL Editor" do seu Supabase
 -- ==========================================
 
+-- ALTER TABLE comandos para atualizar banco de dados existente (caso necessário):
+-- ALTER TABLE users_crm ADD COLUMN IF NOT EXISTS creci TEXT;
+-- ALTER TABLE users_crm ADD COLUMN IF NOT EXISTS bio TEXT;
+
 -- 1. Tabela de Usuários do CRM
 CREATE TABLE IF NOT EXISTS users_crm (
     id TEXT PRIMARY KEY,
@@ -15,6 +19,8 @@ CREATE TABLE IF NOT EXISTS users_crm (
     is_whatsapp_connected BOOLEAN NOT NULL DEFAULT FALSE,
     status TEXT NOT NULL CHECK (status IN ('online', 'offline')) DEFAULT 'online',
     manager_id TEXT REFERENCES users_crm(id) ON DELETE SET NULL,
+    creci TEXT,
+    bio TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -62,7 +68,7 @@ END $$;
 
 -- 3. Inserir Dados Iniciais Padrão (Seed)
 -- Evita erros de duplicação caso os registros já existam usando ON CONFLICT
-INSERT INTO users_crm (id, name, avatar, role, email, phone, password, is_whatsapp_connected, status, manager_id)
+INSERT INTO users_crm (id, name, avatar, role, email, phone, password, is_whatsapp_connected, status, manager_id, creci, bio)
 VALUES
   (
     'diretoria-lider', 
@@ -74,11 +80,13 @@ VALUES
     'admin', 
     false, 
     'online', 
-    NULL
+    NULL,
+    'PE 56789-J',
+    'Direção geral da Líder Imobiliária. Compromisso permanente com a ética, liderança e excelência em negócios imobiliários.'
   )
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO users_crm (id, name, avatar, role, email, phone, password, is_whatsapp_connected, status, manager_id)
+INSERT INTO users_crm (id, name, avatar, role, email, phone, password, is_whatsapp_connected, status, manager_id, creci, bio)
 VALUES
   (
     'gerente-ricardo', 
@@ -90,11 +98,13 @@ VALUES
     '123', 
     false, 
     'online', 
-    NULL
+    NULL,
+    'PE 45678-F',
+    'Gerente comercial com mais de 10 anos de mercado. Líder nato focado no desenvolvimento de corretores de alta performance.'
   )
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO users_crm (id, name, avatar, role, email, phone, password, is_whatsapp_connected, status, manager_id)
+INSERT INTO users_crm (id, name, avatar, role, email, phone, password, is_whatsapp_connected, status, manager_id, creci, bio)
 VALUES
   (
     'ana-silva', 
@@ -106,7 +116,9 @@ VALUES
     '123', 
     false, 
     'online', 
-    'gerente-ricardo'
+    'gerente-ricardo',
+    'PE 12345-F',
+    'Especialista em lançamentos modernos e imóveis de alto padrão na Zona Sul de Recife. Paixão por realizar sonhos.'
   ),
   (
     'bruno-santos', 
@@ -118,7 +130,9 @@ VALUES
     '123', 
     false, 
     'online', 
-    'gerente-ricardo'
+    'gerente-ricardo',
+    'PE 23456-F',
+    'Foco exclusivo em condomínios fechados, chácaras de luxo e terrenos de médio e alto padrão. Atendimento personalizado.'
   ),
   (
     'carlos-lima', 
@@ -130,6 +144,8 @@ VALUES
     '123', 
     false, 
     'offline', 
-    'gerente-ricardo'
+    'gerente-ricardo',
+    'PE 34567-F',
+    'Consultor de negócios imobiliários comerciais e residenciais na região central. Sólida experiência em negociação corporativa.'
   )
 ON CONFLICT (id) DO NOTHING;

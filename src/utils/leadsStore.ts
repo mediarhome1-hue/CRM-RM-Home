@@ -13,6 +13,8 @@ export interface UserCRM {
   isWhatsAppConnected: boolean;
   status: 'online' | 'offline';
   managerId?: string; // Para corretores associados a equipes de gerentes
+  creci?: string;
+  bio?: string;
 }
 
 export interface Lead {
@@ -42,6 +44,8 @@ export const INITIAL_USERS: UserCRM[] = [
     password: 'admin',
     isWhatsAppConnected: false,
     status: 'online',
+    creci: 'PE 56789-J',
+    bio: 'Direção geral da Líder Imobiliária. Compromisso permanente com a ética, liderança e excelência em negócios imobiliários.'
   },
   {
     id: 'gerente-ricardo',
@@ -53,6 +57,8 @@ export const INITIAL_USERS: UserCRM[] = [
     password: '123',
     isWhatsAppConnected: false,
     status: 'online',
+    creci: 'PE 45678-F',
+    bio: 'Gerente comercial com mais de 10 anos de mercado. Líder nato focado no desenvolvimento de corretores de alta performance.'
   },
   {
     id: 'ana-silva',
@@ -65,6 +71,8 @@ export const INITIAL_USERS: UserCRM[] = [
     isWhatsAppConnected: false,
     status: 'online',
     managerId: 'gerente-ricardo',
+    creci: 'PE 12345-F',
+    bio: 'Especialista em lançamentos modernos e imóveis de alto padrão na Zona Sul de Recife. Paixão por realizar sonhos.'
   },
   {
     id: 'bruno-santos',
@@ -77,6 +85,8 @@ export const INITIAL_USERS: UserCRM[] = [
     isWhatsAppConnected: false,
     status: 'online',
     managerId: 'gerente-ricardo',
+    creci: 'PE 23456-F',
+    bio: 'Foco exclusivo em condomínios fechados, chácaras de luxo e terrenos de médio e alto padrão. Atendimento personalizado.'
   },
   {
     id: 'carlos-lima',
@@ -89,6 +99,8 @@ export const INITIAL_USERS: UserCRM[] = [
     isWhatsAppConnected: false,
     status: 'offline',
     managerId: 'gerente-ricardo',
+    creci: 'PE 34567-F',
+    bio: 'Consultor de negócios imobiliários comerciais e residenciais na região central. Sólida experiência em negociação corporativa.'
   }
 ];
 
@@ -134,7 +146,9 @@ const mapUserToDB = (u: UserCRM) => ({
   password: u.password || '123',
   is_whatsapp_connected: u.isWhatsAppConnected,
   status: u.status,
-  manager_id: u.managerId || null
+  manager_id: u.managerId || null,
+  creci: u.creci || null,
+  bio: u.bio || null
 });
 
 const mapUserFromDB = (row: any): UserCRM => ({
@@ -147,7 +161,9 @@ const mapUserFromDB = (row: any): UserCRM => ({
   password: row.password,
   isWhatsAppConnected: row.is_whatsapp_connected,
   status: row.status as 'online' | 'offline',
-  managerId: row.manager_id || undefined
+  managerId: row.manager_id || undefined,
+  creci: row.creci || undefined,
+  bio: row.bio || undefined
 });
 
 const mapLeadToDB = (l: Lead) => ({
@@ -188,8 +204,16 @@ export const syncWithSupabase = async (): Promise<boolean> => {
     // 1. Sincronizar Usuários
     const { data: usersData, error: usersErr } = await supabase.from('users_crm').select('*');
     if (!usersErr && usersData) {
-      const mappedUsers = usersData.map(mapUserFromDB);
-      localStorage.setItem('lider_crm_users', JSON.stringify(mappedUsers));
+      if (usersData.length === 0) {
+        // Banco está vazio! Vamos semear (seed) os INITIAL_USERS automaticamente na nuvem!
+        const { error: seedErr } = await supabase.from('users_crm').insert(INITIAL_USERS.map(mapUserToDB));
+        if (!seedErr) {
+          localStorage.setItem('lider_crm_users', JSON.stringify(INITIAL_USERS));
+        }
+      } else {
+        const mappedUsers = usersData.map(mapUserFromDB);
+        localStorage.setItem('lider_crm_users', JSON.stringify(mappedUsers));
+      }
     }
 
     // 2. Sincronizar Leads
@@ -229,7 +253,10 @@ const pushLeadToSupabase = async (lead: Lead) => {
 export const getUsers = (): UserCRM[] => {
   if (typeof window === 'undefined') return INITIAL_USERS;
   const stored = localStorage.getItem('lider_crm_users');
-  if (stored) return JSON.parse(stored);
+  if (stored) {
+    const parsed = JSON.parse(stored);
+    if (parsed && parsed.length > 0) return parsed;
+  }
   localStorage.setItem('lider_crm_users', JSON.stringify(INITIAL_USERS));
   
   // Se Supabase estiver ativo, dispara fetch em segundo plano para futuras renderizações
