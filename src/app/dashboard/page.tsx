@@ -1199,7 +1199,7 @@ export default function Dashboard() {
                 {/* Left side: Avatar Preview */}
                 <div className="w-full md:w-1/3 flex flex-col items-center md:items-start text-center md:text-left border-b md:border-b-0 md:border-r border-slate-200/60 pb-6 md:pb-0 md:pr-8 space-y-6">
                   {/* Avatar section */}
-                  <div className="relative group self-center">
+                  <label className="relative group self-center cursor-pointer">
                     <img 
                       src={profileAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150'} 
                       alt="Avatar Preview" 
@@ -1209,10 +1209,27 @@ export default function Dashboard() {
                         'border-[#3159C1]/80'
                       } shadow-md transition-transform duration-300 group-hover:scale-105`} 
                     />
-                    <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer">
+                    <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                       <Camera className="text-white w-8 h-8" />
                     </div>
-                  </div>
+                    <input 
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            if (typeof reader.result === 'string') {
+                              setProfileAvatar(reader.result);
+                            }
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                  </label>
                   
                   <div className="w-full flex flex-col items-center md:items-start">
                     <h3 className="text-xl font-bold text-slate-800 flex items-center gap-1.5 justify-center md:justify-start">
@@ -1345,14 +1362,37 @@ export default function Dashboard() {
                             </div>
 
                             <div className="space-y-1">
-                              <label className="text-xs font-bold text-slate-600 block">URL da Foto de Perfil</label>
-                              <input
-                                type="url"
-                                placeholder="https://images.unsplash.com/..."
-                                value={profileAvatar}
-                                onChange={(e) => setProfileAvatar(e.target.value)}
-                                className="w-full px-4 py-3 bg-gray-50 border border-slate-200 rounded-xl text-sm focus:ring-1 focus:ring-[#3159C1] focus:outline-none font-mono text-xs text-slate-600"
-                              />
+                              <label className="text-xs font-bold text-slate-600 block">Foto de Perfil</label>
+                              <div className="flex flex-col sm:flex-row gap-3 items-center">
+                                <input
+                                  type="url"
+                                  placeholder="Cole a URL da foto ou use o botão ao lado"
+                                  value={profileAvatar}
+                                  onChange={(e) => setProfileAvatar(e.target.value)}
+                                  className="flex-1 w-full px-4 py-3 bg-gray-50 border border-slate-200 rounded-xl text-sm focus:ring-1 focus:ring-[#3159C1] focus:outline-none font-mono text-xs text-slate-600"
+                                />
+                                <label className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 border border-dashed border-[#3159C1] hover:bg-[#3159C1]/5 text-[#3159C1] font-bold rounded-xl text-xs uppercase cursor-pointer transition-all flex-shrink-0">
+                                  <Camera size={16} />
+                                  Carregar Foto
+                                  <input 
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) {
+                                        const reader = new FileReader();
+                                        reader.onloadend = () => {
+                                          if (typeof reader.result === 'string') {
+                                            setProfileAvatar(reader.result);
+                                          }
+                                        };
+                                        reader.readAsDataURL(file);
+                                      }
+                                    }}
+                                  />
+                                </label>
+                              </div>
                             </div>
                           </div>
                         </motion.div>
@@ -1949,20 +1989,65 @@ Clique abaixo para conversar:`}
 
               <form onSubmit={handleEditUserSubmit} className="space-y-4">
                 <div className="flex gap-4 items-center bg-slate-900/40 p-4 border border-slate-700/30 rounded-2xl mb-2">
-                  <img 
-                    src={editUserAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150'} 
-                    alt="Preview" 
-                    className="w-14 h-14 rounded-full object-cover border border-[#3159C1]" 
-                  />
-                  <div className="flex-1 space-y-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">URL do Avatar</label>
-                    <input
-                      type="url"
-                      placeholder="URL da foto"
-                      value={editUserAvatar}
-                      onChange={(e) => setEditUserAvatar(e.target.value)}
-                      className="w-full px-3 py-1.5 bg-gray-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#3159C1] font-mono"
+                  <label className="relative group cursor-pointer flex-shrink-0">
+                    <img 
+                      src={editUserAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150'} 
+                      alt="Preview" 
+                      className="w-14 h-14 rounded-full object-cover border border-[#3159C1] transition-transform duration-300 hover:scale-105" 
                     />
+                    <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <Camera className="text-white w-4 h-4" />
+                    </div>
+                    <input 
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            if (typeof reader.result === 'string') {
+                              setEditUserAvatar(reader.result);
+                            }
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                  </label>
+                  <div className="flex-1 space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Foto de Perfil do Usuário</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="url"
+                        placeholder="URL da foto"
+                        value={editUserAvatar}
+                        onChange={(e) => setEditUserAvatar(e.target.value)}
+                        className="flex-1 px-3 py-1.5 bg-gray-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#3159C1] font-mono"
+                      />
+                      <label className="flex items-center justify-center gap-1.5 px-3 py-1.5 border border-dashed border-[#3159C1] hover:bg-[#3159C1]/5 text-[#3159C1] font-bold rounded-lg text-xs cursor-pointer transition-all">
+                        <Camera size={12} />
+                        Carregar
+                        <input 
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                if (typeof reader.result === 'string') {
+                                  setEditUserAvatar(reader.result);
+                                }
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
                   </div>
                 </div>
 
