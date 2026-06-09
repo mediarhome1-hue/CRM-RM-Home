@@ -15,6 +15,8 @@ export interface UserCRM {
   managerId?: string; // Para corretores associados a equipes de gerentes
   creci?: string;
   bio?: string;
+  birthdate?: string; // Data de nascimento (ISO date string YYYY-MM-DD)
+  emailNotifications?: boolean; // Receber e-mail quando perfil for alterado
 }
 
 export interface Lead {
@@ -148,7 +150,9 @@ const mapUserToDB = (u: UserCRM) => ({
   status: u.status,
   manager_id: u.managerId || null,
   creci: u.creci || null,
-  bio: u.bio || null
+  bio: u.bio || null,
+  birthdate: u.birthdate || null,
+  email_notifications: u.emailNotifications ?? true
 });
 
 const mapUserFromDB = (row: any): UserCRM => ({
@@ -163,7 +167,9 @@ const mapUserFromDB = (row: any): UserCRM => ({
   status: row.status as 'online' | 'offline',
   managerId: row.manager_id || undefined,
   creci: row.creci || undefined,
-  bio: row.bio || undefined
+  bio: row.bio || undefined,
+  birthdate: row.birthdate || undefined,
+  emailNotifications: row.email_notifications ?? true
 });
 
 const mapLeadToDB = (l: Lead) => ({

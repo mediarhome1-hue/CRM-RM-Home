@@ -9,7 +9,8 @@ import {
   Plus, Calendar, Mail, Phone, ChevronRight, FileText, 
   Sparkles, CheckCircle2, QrCode, ToggleLeft, ToggleRight,
   TrendingUp, Award, Clock, ArrowRight, ShieldCheck, Search, Trash2,
-  Shield, UserCheck, AlertTriangle, RefreshCw, Layers, Edit, Check, User
+  Shield, UserCheck, AlertTriangle, RefreshCw, Layers, Edit, Check, User,
+  Camera, BadgeCheck, Lock, Bell, X, Eye, EyeOff
 } from 'lucide-react';
 import { 
   getUsers, createUser, updateUser, deleteUser, toggleUserStatus,
@@ -79,6 +80,13 @@ export default function Dashboard() {
   const [profileCreci, setProfileCreci] = useState('');
   const [profileBio, setProfileBio] = useState('');
   const [isProfileSaving, setIsProfileSaving] = useState(false);
+  const [profileTab, setProfileTab] = useState<'identity' | 'personal' | 'security' | 'notifications'>('identity');
+  const [profileBirthdate, setProfileBirthdate] = useState('');
+  const [profileEmailNotify, setProfileEmailNotify] = useState(true);
+  const [profilePasswordConfirm, setProfilePasswordConfirm] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
+  const [showEmailBanner, setShowEmailBanner] = useState(false);
 
   // Search Filter
   const [searchTerm, setSearchTerm] = useState('');
@@ -129,6 +137,8 @@ export default function Dashboard() {
     setProfilePassword(user.password || '');
     setProfileCreci(user.creci || '');
     setProfileBio(user.bio || '');
+    setProfileBirthdate(user.birthdate || '');
+    setProfileEmailNotify(user.emailNotifications ?? true);
 
     // Sincronizar com o banco de dados na nuvem (Supabase) se estiver configurado
     const syncCloudData = async () => {
@@ -151,6 +161,8 @@ export default function Dashboard() {
           setProfilePassword(updatedUser.password || '');
           setProfileCreci(updatedUser.creci || '');
           setProfileBio(updatedUser.bio || '');
+          setProfileBirthdate(updatedUser.birthdate || '');
+          setProfileEmailNotify(updatedUser.emailNotifications ?? true);
         }
       }
     };
@@ -325,6 +337,11 @@ export default function Dashboard() {
     e.preventDefault();
     if (!currentUser || !profileName || !profilePhone) return;
 
+    if (profileTab === 'security' && profilePassword && profilePassword !== profilePasswordConfirm) {
+      alert('As senhas não coincidem!');
+      return;
+    }
+
     setIsProfileSaving(true);
     
     setTimeout(() => {
@@ -334,7 +351,9 @@ export default function Dashboard() {
         avatar: profileAvatar || currentUser.avatar,
         password: profilePassword || currentUser.password,
         creci: profileCreci || undefined,
-        bio: profileBio || undefined
+        bio: profileBio || undefined,
+        birthdate: profileBirthdate || undefined,
+        emailNotifications: profileEmailNotify
       };
 
       const updatedUsers = updateUser(currentUser.id, updates);
@@ -349,10 +368,16 @@ export default function Dashboard() {
         setProfilePassword(freshUser.password || '');
         setProfileCreci(freshUser.creci || '');
         setProfileBio(freshUser.bio || '');
+        setProfileBirthdate(freshUser.birthdate || '');
+        setProfileEmailNotify(freshUser.emailNotifications ?? true);
       }
 
       setIsProfileSaving(false);
-      alert('Seu perfil foi atualizado com sucesso!');
+      setProfilePasswordConfirm('');
+      setShowEmailBanner(true);
+      setTimeout(() => {
+        setShowEmailBanner(false);
+      }, 5000);
     }, 850);
   };
 
@@ -1167,139 +1192,404 @@ export default function Dashboard() {
 
           {/* 6. USER PROFILE TAB */}
           {activeTab === 'profile' && (
-            <div className="max-w-4xl mx-auto bg-white rounded-3xl p-6 md:p-8 border border-slate-200 shadow-lg relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-[300px] h-[300px] rounded-full bg-[#3159C1]/5 blur-[80px] pointer-events-none" />
+            <div className="max-w-5xl mx-auto bg-white rounded-3xl border border-slate-200/60 shadow-sm relative overflow-hidden p-6 md:p-8">
+              <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full bg-[#3159C1]/5 blur-[100px] pointer-events-none" />
               
               <div className="flex flex-col md:flex-row gap-8 items-start relative z-10">
                 {/* Left side: Avatar Preview */}
-                <div className="w-full md:w-1/3 flex flex-col items-center text-center space-y-4">
-                  <div className="relative">
+                <div className="w-full md:w-1/3 flex flex-col items-center md:items-start text-center md:text-left border-b md:border-b-0 md:border-r border-slate-200/60 pb-6 md:pb-0 md:pr-8 space-y-6">
+                  {/* Avatar section */}
+                  <div className="relative group self-center">
                     <img 
                       src={profileAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150'} 
                       alt="Avatar Preview" 
                       className={`w-32 h-32 rounded-full object-cover border-4 ${
-                        currentUser.role === 'admin' ? 'border-red-500' :
-                        currentUser.role === 'manager' ? 'border-purple-500' :
-                        'border-blue-500'
-                      } shadow-lg`} 
+                        currentUser.role === 'admin' ? 'border-red-500/80' :
+                        currentUser.role === 'manager' ? 'border-purple-500/80' :
+                        'border-[#3159C1]/80'
+                      } shadow-md transition-transform duration-300 group-hover:scale-105`} 
                     />
-                    <div className="absolute bottom-1 right-1 bg-white border border-slate-200 px-2 py-0.5 rounded-md text-[9px] font-black tracking-wider text-slate-500 uppercase">
-                      PREVIEW
+                    <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer">
+                      <Camera className="text-white w-8 h-8" />
                     </div>
                   </div>
                   
-                  <div>
-                    <h3 className="text-lg font-black text-slate-800">{currentUser.name}</h3>
-                    <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded mt-1.5 inline-block ${
-                      currentUser.role === 'admin' ? 'bg-red-500/15 text-red-600 border border-red-500/20' : 
-                      currentUser.role === 'manager' ? 'bg-purple-500/15 text-purple-600 border border-purple-500/20' : 
+                  <div className="w-full flex flex-col items-center md:items-start">
+                    <h3 className="text-xl font-bold text-slate-800 flex items-center gap-1.5 justify-center md:justify-start">
+                      {currentUser.name}
+                      {profileCreci && (
+                        <span title="Corretor Verificado">
+                          <BadgeCheck size={16} className="text-[#3159C1]" />
+                        </span>
+                      )}
+                    </h3>
+                    
+                    <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded mt-2 inline-block ${
+                      currentUser.role === 'admin' ? 'bg-red-500/10 text-red-600 border border-red-500/20' : 
+                      currentUser.role === 'manager' ? 'bg-purple-500/10 text-purple-600 border border-purple-500/20' : 
                       'bg-[#3159C1]/10 text-[#3159C1] border border-[#3159C1]/20'
                     }`}>
                       {currentUser.role === 'admin' ? 'Diretoria / Admin' : currentUser.role === 'manager' ? 'Gerência' : 'Consultor Corretor'}
                     </span>
+                    
+                    {profileCreci && (
+                      <span className="text-xs text-slate-500 font-semibold mt-2">
+                        CRECI: <span className="text-[#3159C1] font-bold">{profileCreci}</span>
+                      </span>
+                    )}
                   </div>
 
-                  <p className="text-slate-500 text-xs leading-relaxed max-w-[220px]">
-                    Cole uma nova URL de imagem para atualizar sua foto de perfil do CRM em tempo real.
-                  </p>
+                  {/* Sub-tab Navigation */}
+                  <div className="w-full space-y-1 pt-4 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setProfileTab('identity')}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all ${
+                        profileTab === 'identity' 
+                          ? 'bg-[#3159C1]/10 text-[#3159C1] border border-[#3159C1]/20' 
+                          : 'text-slate-500 hover:bg-slate-50 border border-transparent'
+                      }`}
+                    >
+                      <Camera size={16} /> Foto & Identidade
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setProfileTab('personal')}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all ${
+                        profileTab === 'personal' 
+                          ? 'bg-[#3159C1]/10 text-[#3159C1] border border-[#3159C1]/20' 
+                          : 'text-slate-500 hover:bg-slate-50 border border-transparent'
+                      }`}
+                    >
+                      <FileText size={16} /> Dados Pessoais
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setProfileTab('security')}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all ${
+                        profileTab === 'security' 
+                          ? 'bg-[#3159C1]/10 text-[#3159C1] border border-[#3159C1]/20' 
+                          : 'text-slate-500 hover:bg-slate-50 border border-transparent'
+                      }`}
+                    >
+                      <Lock size={16} /> Segurança
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setProfileTab('notifications')}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all ${
+                        profileTab === 'notifications' 
+                          ? 'bg-[#3159C1]/10 text-[#3159C1] border border-[#3159C1]/20' 
+                          : 'text-slate-500 hover:bg-slate-50 border border-transparent'
+                      }`}
+                    >
+                      <Bell size={16} /> Notificações
+                    </button>
+                  </div>
                 </div>
 
-                {/* Right side: Form */}
-                <div className="flex-1 w-full">
-                  <form onSubmit={handleProfileSave} className="space-y-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-slate-600 block">Nome Completo</label>
-                        <input
-                          type="text"
-                          required
-                          value={profileName}
-                          onChange={(e) => setProfileName(e.target.value)}
-                          className="w-full px-4 py-3 bg-gray-50 border border-slate-200 rounded-xl text-sm focus:ring-1 focus:ring-[#3159C1] focus:outline-none"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-slate-600 block">WhatsApp de Atendimento</label>
-                        <input
-                          type="tel"
-                          required
-                          value={profilePhone}
-                          onChange={(e) => setProfilePhone(e.target.value)}
-                          className="w-full px-4 py-3 bg-gray-50 border border-slate-200 rounded-xl text-sm focus:ring-1 focus:ring-[#3159C1] focus:outline-none"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-slate-600 block">E-mail de Acesso (Login)</label>
-                        <input
-                          type="email"
-                          disabled
-                          value={currentUser.email}
-                          className="w-full px-4 py-3 bg-slate-100 border border-slate-200 text-slate-400 rounded-xl text-sm cursor-not-allowed focus:outline-none font-medium"
-                          title="O e-mail de acesso não pode ser alterado para segurança da sua conta."
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-slate-600 block">Número do Registro CRECI</label>
-                        <input
-                          type="text"
-                          placeholder="Ex: PE 12345-F"
-                          value={profileCreci}
-                          onChange={(e) => setProfileCreci(e.target.value)}
-                          className="w-full px-4 py-3 bg-gray-50 border border-slate-200 rounded-xl text-sm focus:ring-1 focus:ring-[#3159C1] focus:outline-none"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-slate-600 block">Link da Foto de Perfil (URL)</label>
-                      <input
-                        type="url"
-                        placeholder="Ex: https://images.unsplash.com/..."
-                        value={profileAvatar}
-                        onChange={(e) => setProfileAvatar(e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-50 border border-slate-200 rounded-xl text-sm focus:ring-1 focus:ring-[#3159C1] focus:outline-none font-mono text-xs"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-slate-600 block">Minha Biografia Profissional</label>
-                      <textarea
-                        rows={4}
-                        placeholder="Ex: Atuo há mais de 5 anos no mercado imobiliário auxiliando famílias a encontrarem o imóvel dos sonhos..."
-                        value={profileBio}
-                        onChange={(e) => setProfileBio(e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-50 border border-slate-200 rounded-xl text-sm focus:ring-1 focus:ring-[#3159C1] focus:outline-none resize-none font-medium text-slate-300 leading-relaxed"
-                      />
-                    </div>
-
-                    <div className="space-y-1 border-t border-slate-200 pt-4">
-                      <label className="text-xs font-bold text-slate-600 block">Alterar Senha do CRM</label>
-                      <input
-                        type="password"
-                        placeholder="Deixe em branco para manter a senha atual"
-                        value={profilePassword}
-                        onChange={(e) => setProfilePassword(e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-50 border border-slate-200 rounded-xl text-sm focus:ring-1 focus:ring-[#3159C1] focus:outline-none"
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={isProfileSaving}
-                      className="w-full py-4 bg-[#3159C1] hover:bg-[#2348a8] text-white font-bold rounded-xl text-xs uppercase tracking-wider shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                    >
-                      {isProfileSaving ? (
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        'Salvar Configurações de Perfil'
+                {/* Right side: Active Tab Content */}
+                <div className="flex-1 w-full flex flex-col justify-between min-h-[400px]">
+                  <div>
+                    {/* Visual Banner */}
+                    <AnimatePresence>
+                      {showEmailBanner && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="mb-6 p-4 bg-emerald-50 border border-emerald-200/60 text-emerald-800 rounded-2xl flex items-center justify-between shadow-xs"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="bg-emerald-500 text-white p-1 rounded-full">
+                              <Check size={14} />
+                            </div>
+                            <span className="text-xs font-bold">
+                              Confirmação enviada para <span className="underline">{currentUser.email}</span>
+                            </span>
+                          </div>
+                          <button 
+                            type="button"
+                            onClick={() => setShowEmailBanner(false)} 
+                            className="text-emerald-600 hover:text-emerald-800 font-bold text-xs"
+                          >
+                            <X size={16} />
+                          </button>
+                        </motion.div>
                       )}
-                    </button>
-                  </form>
+                    </AnimatePresence>
+
+                    <form onSubmit={handleProfileSave} className="space-y-6">
+                      {/* SUB-TAB 1: IDENTITY */}
+                      {profileTab === 'identity' && (
+                        <motion.div 
+                          initial={{ opacity: 0, x: 10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className="space-y-6"
+                        >
+                          <div>
+                            <h3 className="text-md font-bold text-slate-800 mb-1">Identidade Básica</h3>
+                            <p className="text-slate-500 text-xs">Atualize seu nome público e a foto de perfil exibida no CRM.</p>
+                          </div>
+
+                          <div className="space-y-4">
+                            <div className="space-y-1">
+                              <label className="text-xs font-bold text-slate-600 block">Nome Completo</label>
+                              <input
+                                type="text"
+                                required
+                                value={profileName}
+                                onChange={(e) => setProfileName(e.target.value)}
+                                className="w-full px-4 py-3 bg-gray-50 border border-slate-200 rounded-xl text-sm focus:ring-1 focus:ring-[#3159C1] focus:outline-none"
+                              />
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-xs font-bold text-slate-600 block">URL da Foto de Perfil</label>
+                              <input
+                                type="url"
+                                placeholder="https://images.unsplash.com/..."
+                                value={profileAvatar}
+                                onChange={(e) => setProfileAvatar(e.target.value)}
+                                className="w-full px-4 py-3 bg-gray-50 border border-slate-200 rounded-xl text-sm focus:ring-1 focus:ring-[#3159C1] focus:outline-none font-mono text-xs text-slate-600"
+                              />
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+
+                      {/* SUB-TAB 2: PERSONAL DETAILS */}
+                      {profileTab === 'personal' && (
+                        <motion.div 
+                          initial={{ opacity: 0, x: 10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className="space-y-6"
+                        >
+                          <div>
+                            <h3 className="text-md font-bold text-slate-800 mb-1">Dados Pessoais & Profissionais</h3>
+                            <p className="text-slate-500 text-xs">Essas informações são vinculadas aos seus leads e usadas nas comunicações.</p>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <label className="text-xs font-bold text-slate-600 block">WhatsApp de Atendimento</label>
+                              <input
+                                type="tel"
+                                required
+                                value={profilePhone}
+                                onChange={(e) => setProfilePhone(e.target.value)}
+                                className="w-full px-4 py-3 bg-gray-50 border border-slate-200 rounded-xl text-sm focus:ring-1 focus:ring-[#3159C1] focus:outline-none"
+                              />
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-xs font-bold text-slate-600 block">Número do Registro CRECI</label>
+                              <input
+                                type="text"
+                                placeholder="Ex: PE 12345-F"
+                                value={profileCreci}
+                                onChange={(e) => setProfileCreci(e.target.value)}
+                                className="w-full px-4 py-3 bg-gray-50 border border-slate-200 rounded-xl text-sm focus:ring-1 focus:ring-[#3159C1] focus:outline-none"
+                              />
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-xs font-bold text-slate-600 block">Data de Nascimento</label>
+                              <input
+                                type="date"
+                                value={profileBirthdate}
+                                onChange={(e) => setProfileBirthdate(e.target.value)}
+                                className="w-full px-4 py-3 bg-gray-50 border border-slate-200 rounded-xl text-sm focus:ring-1 focus:ring-[#3159C1] focus:outline-none cursor-pointer"
+                              />
+                            </div>
+
+                            <div className="space-y-1">
+                              <div className="flex justify-between items-center">
+                                <label className="text-xs font-bold text-slate-600 block">E-mail de Acesso (Login)</label>
+                                <span className="text-[10px] font-black uppercase text-slate-400 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">Imutável</span>
+                              </div>
+                              <input
+                                type="email"
+                                disabled
+                                value={currentUser.email}
+                                className="w-full px-4 py-3 bg-slate-100 border border-slate-200 text-slate-400 rounded-xl text-sm cursor-not-allowed focus:outline-none font-medium"
+                                title="O e-mail de acesso não pode ser alterado para segurança da sua conta."
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-1">
+                            <div className="flex justify-between items-center">
+                              <label className="text-xs font-bold text-slate-600 block">Minha Biografia Profissional</label>
+                              <span className="text-[10px] text-slate-400 font-bold">{profileBio.length}/500</span>
+                            </div>
+                            <textarea
+                              rows={3}
+                              maxLength={500}
+                              placeholder="Fale um pouco sobre sua experiência, especialidade e conquistas..."
+                              value={profileBio}
+                              onChange={(e) => setProfileBio(e.target.value)}
+                              className="w-full px-4 py-3 bg-gray-50 border border-slate-200 rounded-xl text-sm focus:ring-1 focus:ring-[#3159C1] focus:outline-none resize-none font-medium text-slate-700 leading-relaxed"
+                            />
+                          </div>
+                        </motion.div>
+                      )}
+
+                      {/* SUB-TAB 3: SECURITY */}
+                      {profileTab === 'security' && (
+                        <motion.div 
+                          initial={{ opacity: 0, x: 10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className="space-y-6"
+                        >
+                          <div>
+                            <h3 className="text-md font-bold text-slate-800 mb-1">Segurança da Conta</h3>
+                            <p className="text-slate-500 text-xs">Mantenha sua senha atualizada para proteger seus dados e de seus leads.</p>
+                          </div>
+
+                          <div className="bg-amber-50 border border-amber-200/60 p-4 rounded-2xl flex items-start gap-3">
+                            <AlertTriangle className="text-amber-600 flex-shrink-0 mt-0.5" size={18} />
+                            <div>
+                              <h4 className="text-xs font-bold text-amber-800">Atenção ao alterar a senha</h4>
+                              <p className="text-[11px] text-amber-700 mt-0.5 leading-relaxed">
+                                Certifique-se de escolher uma senha segura. Caso a altere, você precisará utilizar a nova senha no seu próximo login.
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="space-y-4">
+                            <div className="space-y-1">
+                              <label className="text-xs font-bold text-slate-600 block">Nova Senha</label>
+                              <div className="relative">
+                                <input
+                                  type={showPassword ? 'text' : 'password'}
+                                  placeholder="Digite a nova senha"
+                                  value={profilePassword}
+                                  onChange={(e) => setProfilePassword(e.target.value)}
+                                  className="w-full pl-4 pr-10 py-3 bg-gray-50 border border-slate-200 rounded-xl text-sm focus:ring-1 focus:ring-[#3159C1] focus:outline-none font-mono"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setShowPassword(!showPassword)}
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                >
+                                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="space-y-1">
+                              <label className="text-xs font-bold text-slate-600 block">Confirmar Nova Senha</label>
+                              <div className="relative">
+                                <input
+                                  type={showPasswordConfirm ? 'text' : 'password'}
+                                  placeholder="Confirme a nova senha"
+                                  value={profilePasswordConfirm}
+                                  onChange={(e) => setProfilePasswordConfirm(e.target.value)}
+                                  className={`w-full pl-4 pr-10 py-3 border rounded-xl text-sm focus:ring-1 focus:outline-none font-mono ${
+                                    profilePasswordConfirm === '' 
+                                      ? 'bg-gray-50 border-slate-200 focus:ring-[#3159C1]' 
+                                      : profilePassword === profilePasswordConfirm
+                                      ? 'bg-emerald-50/50 border-emerald-300 focus:ring-emerald-500'
+                                      : 'bg-red-50/50 border-red-300 focus:ring-red-500'
+                                  }`}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                >
+                                  {showPasswordConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
+                              </div>
+                              {profilePasswordConfirm !== '' && (
+                                <p className={`text-[10px] font-bold ${
+                                  profilePassword === profilePasswordConfirm ? 'text-emerald-600' : 'text-red-500'
+                                }`}>
+                                  {profilePassword === profilePasswordConfirm ? '✓ As senhas coincidem' : '✗ As senhas não coincidem'}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+
+                      {/* SUB-TAB 4: NOTIFICATIONS */}
+                      {profileTab === 'notifications' && (
+                        <motion.div 
+                          initial={{ opacity: 0, x: 10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className="space-y-6"
+                        >
+                          <div>
+                            <h3 className="text-md font-bold text-slate-800 mb-1">Notificações e Avisos</h3>
+                            <p className="text-slate-500 text-xs">Controle como você recebe avisos importantes do CRM Líder.</p>
+                          </div>
+
+                          <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-5 flex items-center justify-between shadow-xs">
+                            <div className="space-y-1 pr-4">
+                              <h4 className="text-sm font-bold text-slate-800">Alertas de segurança no e-mail</h4>
+                              <p className="text-xs text-slate-500 leading-relaxed">
+                                Receba um e-mail automático informando sempre que dados importantes do seu perfil (como senha e dados de acesso) forem modificados.
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setProfileEmailNotify(!profileEmailNotify)}
+                              className="focus:outline-none flex-shrink-0"
+                            >
+                              {profileEmailNotify ? (
+                                <ToggleRight size={44} className="text-[#3159C1]" />
+                              ) : (
+                                <ToggleLeft size={44} className="text-slate-300" />
+                              )}
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-4 space-y-2">
+                              <h4 className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500" /> Alterações de Dados Pessoais
+                              </h4>
+                              <p className="text-[11px] text-slate-500 leading-relaxed">
+                                Notificações automáticas em tempo real para CRECI, WhatsApp e outras atualizações cadastrais.
+                              </p>
+                            </div>
+
+                            <div className="bg-slate-50 border border-slate-200/50 rounded-2xl p-4 space-y-2 opacity-60">
+                              <h4 className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-slate-400" /> Novos Leads Atribuídos (Breve)
+                              </h4>
+                              <p className="text-[11px] text-slate-500 leading-relaxed">
+                                Aviso por e-mail ou push quando novos leads forem repassados ou redistribuídos para você.
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex gap-3">
+                            <AlertTriangle className="text-amber-600 flex-shrink-0 mt-0.5" size={16} />
+                            <p className="text-[11px] text-amber-700 leading-relaxed font-medium">
+                              Importante: Mantenha as notificações ativas para acompanhar as atividades de segurança de sua conta.
+                            </p>
+                          </div>
+                        </motion.div>
+                      )}
+
+                      <div className="pt-6 border-t border-slate-200/60 mt-8 flex justify-end">
+                        <button
+                          type="submit"
+                          disabled={isProfileSaving || (profileTab === 'security' && profilePassword !== profilePasswordConfirm)}
+                          className="px-6 py-3 bg-[#3159C1] hover:bg-[#234294] disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-bold rounded-xl text-xs uppercase tracking-wider shadow-md active:scale-95 transition-all flex items-center justify-center gap-2 min-w-[180px]"
+                        >
+                          {isProfileSaving ? (
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            'Salvar Alterações'
+                          )}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
                 </div>
               </div>
             </div>

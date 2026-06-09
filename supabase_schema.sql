@@ -6,6 +6,8 @@
 -- ALTER TABLE comandos para atualizar banco de dados existente (caso necessário):
 -- ALTER TABLE users_crm ADD COLUMN IF NOT EXISTS creci TEXT;
 -- ALTER TABLE users_crm ADD COLUMN IF NOT EXISTS bio TEXT;
+-- ALTER TABLE users_crm ADD COLUMN IF NOT EXISTS birthdate DATE;
+-- ALTER TABLE users_crm ADD COLUMN IF NOT EXISTS email_notifications BOOLEAN DEFAULT TRUE;
 
 -- 1. Tabela de Usuários do CRM
 CREATE TABLE IF NOT EXISTS users_crm (
@@ -21,6 +23,8 @@ CREATE TABLE IF NOT EXISTS users_crm (
     manager_id TEXT REFERENCES users_crm(id) ON DELETE SET NULL,
     creci TEXT,
     bio TEXT,
+    birthdate DATE,
+    email_notifications BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
