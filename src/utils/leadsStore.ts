@@ -239,18 +239,28 @@ export const syncWithSupabase = async (): Promise<boolean> => {
 const pushUserToSupabase = async (user: UserCRM) => {
   if (!isSupabaseConfigured) return;
   try {
-    await supabase.from('users_crm').upsert(mapUserToDB(user));
+    const { error } = await supabase.from('users_crm').upsert(mapUserToDB(user));
+    if (error) {
+      console.error('Erro ao enviar usuário para o Supabase:', error.message, error.details, error.hint);
+    } else {
+      console.log('Usuário sincronizado com o Supabase:', user.name);
+    }
   } catch (e) {
-    console.error(e);
+    console.error('Falha de rede/conexão ao enviar usuário:', e);
   }
 };
 
 const pushLeadToSupabase = async (lead: Lead) => {
   if (!isSupabaseConfigured) return;
   try {
-    await supabase.from('leads').upsert(mapLeadToDB(lead));
+    const { error } = await supabase.from('leads').upsert(mapLeadToDB(lead));
+    if (error) {
+      console.error('Erro ao enviar lead para o Supabase:', error.message, error.details, error.hint);
+    } else {
+      console.log('Lead sincronizado com o Supabase:', lead.name);
+    }
   } catch (e) {
-    console.error(e);
+    console.error('Falha de rede/conexão ao enviar lead:', e);
   }
 };
 

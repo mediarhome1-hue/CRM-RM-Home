@@ -153,3 +153,7 @@ VALUES
     'Consultor de negócios imobiliários comerciais e residenciais na região central. Sólida experiência em negociação corporativa.'
   )
 ON CONFLICT (id) DO NOTHING;
+
+-- 4. Desabilitar Row Level Security (RLS) para permitir conexões do frontend diretamente
+ALTER TABLE users_crm DISABLE ROW LEVEL SECURITY;
+ALTER TABLE leads DISABLE ROW LEVEL SECURITY;

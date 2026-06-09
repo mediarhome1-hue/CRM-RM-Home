@@ -19,6 +19,7 @@ import {
   runTransbordoCheck,
   UserCRM, Lead, UserRole, INITIAL_USERS
 } from '../../utils/leadsStore';
+import { supabase, isSupabaseConfigured } from '../../utils/supabaseClient';
 
 const STATUS_COLUMNS = [
   { id: 'new', title: 'Novos Leads', color: 'border-blue-500 bg-blue-50/30 text-blue-700' },
@@ -167,6 +168,46 @@ export default function Dashboard() {
       }
     };
     syncCloudData();
+
+    // Inscrever-se nos canais em tempo real se o Supabase estiver configurado
+    let usersChannel: any;
+    let leadsChannel: any;
+
+    if (isSupabaseConfigured) {
+      usersChannel = supabase
+        .channel('users-realtime')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'users_crm' }, async () => {
+          const { syncWithSupabase } = await import('../../utils/leadsStore');
+          await syncWithSupabase();
+          const freshUsers = getUsers();
+          setUsers(freshUsers);
+          
+          // Se o meu próprio usuário foi editado em tempo real por outro admin
+          const updatedUser = freshUsers.find(u => u.id === userId);
+          if (updatedUser) {
+            setCurrentUser(updatedUser);
+          }
+        })
+        .subscribe();
+
+      leadsChannel = supabase
+        .channel('leads-realtime')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, async () => {
+          const { syncWithSupabase } = await import('../../utils/leadsStore');
+          await syncWithSupabase();
+          setLeads(getLeads());
+        })
+        .subscribe();
+    }
+
+    return () => {
+      if (usersChannel) {
+        supabase.removeChannel(usersChannel);
+      }
+      if (leadsChannel) {
+        supabase.removeChannel(leadsChannel);
+      }
+    };
   }, [router]);
 
   const handleLogout = () => {

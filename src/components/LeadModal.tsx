@@ -20,6 +20,16 @@ export default function LeadModal({ isOpen, onClose, propertyName, propertyBg }:
   const [isDuplicate, setIsDuplicate] = useState(false);
   const [assignedBroker, setAssignedBroker] = useState<UserCRM | null>(null);
 
+  React.useEffect(() => {
+    if (isOpen) {
+      const sync = async () => {
+        const { syncWithSupabase } = await import('../utils/leadsStore');
+        await syncWithSupabase();
+      };
+      sync();
+    }
+  }, [isOpen]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !phone) return;
