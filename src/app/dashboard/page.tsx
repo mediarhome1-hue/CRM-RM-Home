@@ -172,6 +172,7 @@ export default function Dashboard() {
     // Inscrever-se nos canais em tempo real se o Supabase estiver configurado
     let usersChannel: any;
     let leadsChannel: any;
+    let pollingInterval: any;
 
     if (isSupabaseConfigured) {
       usersChannel = supabase
@@ -198,6 +199,22 @@ export default function Dashboard() {
           setLeads(getLeads());
         })
         .subscribe();
+
+      // Polling de segurança a cada 6 segundos para garantir que dados unificados estejam sincronizados
+      pollingInterval = setInterval(async () => {
+        const { syncWithSupabase } = await import('../../utils/leadsStore');
+        const success = await syncWithSupabase();
+        if (success) {
+          const freshUsers = getUsers();
+          setUsers(freshUsers);
+          setLeads(getLeads());
+          
+          const updatedUser = freshUsers.find(u => u.id === userId);
+          if (updatedUser) {
+            setCurrentUser(updatedUser);
+          }
+        }
+      }, 6000);
     }
 
     return () => {
@@ -206,6 +223,9 @@ export default function Dashboard() {
       }
       if (leadsChannel) {
         supabase.removeChannel(leadsChannel);
+      }
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
       }
     };
   }, [router]);

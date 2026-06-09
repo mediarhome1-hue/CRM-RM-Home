@@ -207,13 +207,21 @@ const mapLeadFromDB = (row: any): Lead => ({
 export const syncWithSupabase = async (): Promise<boolean> => {
   if (!isSupabaseConfigured) return false;
   try {
+    let success = true;
+
     // 1. Sincronizar Usuários
     const { data: usersData, error: usersErr } = await supabase.from('users_crm').select('*');
-    if (!usersErr && usersData) {
+    if (usersErr) {
+      console.error('Erro ao sincronizar usuários do Supabase:', usersErr.message, usersErr.details);
+      success = false;
+    } else if (usersData) {
       if (usersData.length === 0) {
         // Banco está vazio! Vamos semear (seed) os INITIAL_USERS automaticamente na nuvem!
         const { error: seedErr } = await supabase.from('users_crm').insert(INITIAL_USERS.map(mapUserToDB));
-        if (!seedErr) {
+        if (seedErr) {
+          console.error('Erro ao semear usuários iniciais no Supabase:', seedErr.message);
+          success = false;
+        } else {
           localStorage.setItem('lider_crm_users', JSON.stringify(INITIAL_USERS));
         }
       } else {
@@ -224,14 +232,17 @@ export const syncWithSupabase = async (): Promise<boolean> => {
 
     // 2. Sincronizar Leads
     const { data: leadsData, error: leadsErr } = await supabase.from('leads').select('*');
-    if (!leadsErr && leadsData) {
+    if (leadsErr) {
+      console.error('Erro ao sincronizar leads do Supabase:', leadsErr.message, leadsErr.details);
+      success = false;
+    } else if (leadsData) {
       const mappedLeads = leadsData.map(mapLeadFromDB);
       localStorage.setItem('lider_leads', JSON.stringify(mappedLeads));
     }
     
-    return true;
+    return success;
   } catch (e) {
-    console.error('Falha ao sincronizar com Supabase:', e);
+    console.error('Falha crítica ao sincronizar com Supabase:', e);
     return false;
   }
 };

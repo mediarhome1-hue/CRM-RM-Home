@@ -154,6 +154,14 @@ VALUES
   )
 ON CONFLICT (id) DO NOTHING;
 
--- 4. Desabilitar Row Level Security (RLS) para permitir conexões do frontend diretamente
+-- 4. Configuração de RLS e Políticas de Acesso Público
+-- Desabilita RLS por padrão para conexões diretas simplificadas do frontend
 ALTER TABLE users_crm DISABLE ROW LEVEL SECURITY;
 ALTER TABLE leads DISABLE ROW LEVEL SECURITY;
+
+-- Como precaução extra, caso a RLS seja habilitada pelo Supabase, criamos as políticas de acesso livre para leitura e gravação pública
+DROP POLICY IF EXISTS "Permitir tudo para usuarios_crm" ON users_crm;
+CREATE POLICY "Permitir tudo para usuarios_crm" ON users_crm FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Permitir tudo para leads" ON leads;
+CREATE POLICY "Permitir tudo para leads" ON leads FOR ALL USING (true) WITH CHECK (true);
