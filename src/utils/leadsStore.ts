@@ -441,7 +441,18 @@ export const registerLeadFromSite = (leadData: Omit<Lead, 'id' | 'createdAt' | '
   }
 
   const assignedBroker = getNextOnlineBroker();
-  const fallbackBrokerId = assignedBroker ? assignedBroker.id : 'ana-silva';
+  let fallbackBrokerId = 'diretoria-lider';
+  if (assignedBroker) {
+    fallbackBrokerId = assignedBroker.id;
+  } else {
+    const users = getUsers();
+    const allBrokers = users.filter(u => u.role === 'broker');
+    if (allBrokers.length > 0) {
+      fallbackBrokerId = allBrokers[Math.floor(Math.random() * allBrokers.length)].id;
+    } else if (users.length > 0) {
+      fallbackBrokerId = users[0].id;
+    }
+  }
 
   const newLead: Lead = {
     ...leadData,
