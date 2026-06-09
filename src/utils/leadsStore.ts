@@ -358,7 +358,19 @@ export const getNextOnlineBroker = (): UserCRM | null => {
 
   if (onlineBrokers.length === 0) return null;
 
-  const lastBrokerId = localStorage.getItem('last_assigned_broker_id');
+  // Em vez de usar apenas o localStorage do cliente (que reinicia a fila para cada visitante),
+  // buscamos no histórico de leads quem foi o último corretor a receber atendimento
+  const leads = getLeads();
+  let lastBrokerId = localStorage.getItem('last_assigned_broker_id');
+
+  if (leads.length > 0) {
+    const sortedLeads = [...leads].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const lastLeadWithBroker = sortedLeads.find(l => l.assignedBrokerId);
+    if (lastLeadWithBroker) {
+      lastBrokerId = lastLeadWithBroker.assignedBrokerId;
+    }
+  }
+
   let nextIndex = 0;
 
   if (lastBrokerId) {
