@@ -375,6 +375,8 @@ export default function Dashboard() {
       bio: editUserBio || undefined
     };
 
+    const isPasswordChanged = editUserPassword && editUserPassword !== editingUser.password;
+
     const updatedUsers = updateUser(editingUser.id, updates);
     setUsers(getUsers());
     
@@ -395,6 +397,16 @@ export default function Dashboard() {
 
     setEditingUser(null);
     alert('Usuário atualizado com sucesso!');
+
+    // Disparar e-mail de redefinição de senha se foi alterada pelo administrador
+    if (isPasswordChanged) {
+      const freshUser = updatedUsers.find(u => u.id === editingUser.id);
+      if (freshUser) {
+        import('../../utils/emailService').then(({ sendPasswordResetEmail }) => {
+          sendPasswordResetEmail(freshUser, editUserPassword);
+        });
+      }
+    }
   };
 
   // --- GESTÃO DO PRÓPRIO PERFIL (MINHA CONTA) ---
@@ -409,6 +421,17 @@ export default function Dashboard() {
 
     setIsProfileSaving(true);
     
+    // Verificar quais campos mudaram para notificação
+    const changedFields: string[] = [];
+    if (profileName !== currentUser.name) changedFields.push('Nome');
+    if (profilePhone !== currentUser.phone) changedFields.push('WhatsApp');
+    if (profileAvatar && profileAvatar !== currentUser.avatar) changedFields.push('Foto de Perfil');
+    if (profilePassword && profilePassword !== currentUser.password) changedFields.push('Senha de Acesso');
+    if (profileCreci !== (currentUser.creci || '')) changedFields.push('Registro CRECI');
+    if (profileBio !== (currentUser.bio || '')) changedFields.push('Biografia Profissional');
+    if (profileBirthdate !== (currentUser.birthdate || '')) changedFields.push('Data de Nascimento');
+    if (currentUser.role === 'admin' && profileEmail && profileEmail !== currentUser.email) changedFields.push('E-mail de Acesso (Login)');
+
     setTimeout(() => {
       const updates: Partial<UserCRM> = {
         name: profileName,
@@ -442,6 +465,13 @@ export default function Dashboard() {
       setIsProfileSaving(false);
       setProfilePasswordConfirm('');
       setShowEmailBanner(true);
+
+      // Disparar e-mail se houve alteração e a notificação estiver ativa
+      if (changedFields.length > 0 && profileEmailNotify) {
+        import('../../utils/emailService').then(({ sendProfileUpdateEmail }) => {
+          sendProfileUpdateEmail(freshUser || currentUser, changedFields);
+        });
+      }
       setTimeout(() => {
         setShowEmailBanner(false);
       }, 5000);
