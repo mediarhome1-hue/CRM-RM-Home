@@ -89,6 +89,7 @@ export default function Dashboard() {
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [showEmailBanner, setShowEmailBanner] = useState(false);
+  const [isTestingEmail, setIsTestingEmail] = useState(false);
 
   // Search Filter
   const [searchTerm, setSearchTerm] = useState('');
@@ -484,6 +485,24 @@ export default function Dashboard() {
         setShowEmailBanner(false);
       }, 5000);
     }, 850);
+  };
+
+  const handleTestEmailSend = async () => {
+    if (!currentUser) return;
+    setIsTestingEmail(true);
+    try {
+      const { sendProfileUpdateEmail } = await import('../../utils/emailService');
+      const res = await sendProfileUpdateEmail(currentUser, ['Teste de Envio de E-mail (Verificação de Conexão SMTP)']);
+      if (res.success) {
+        alert(`Sucesso! O e-mail de teste foi enviado para ${currentUser.email}. Verifique a sua caixa de entrada e também a caixa de spam/lixo eletrônico.`);
+      } else {
+        alert(`Erro ao enviar e-mail de teste:\n\nDetalhe do erro: ${res.error}\n\nIsso indica que as variáveis SMTP_PASSWORD ou SMTP_USER estão erradas ou vazias no servidor da Vercel.`);
+      }
+    } catch (e: any) {
+      alert(`Falha de conexão com a API de e-mail:\n\n${e.message || e}`);
+    } finally {
+      setIsTestingEmail(false);
+    }
   };
 
   // --- SIMULAÇÃO DE TRANSBORDO (30 MINUTOS) ---
@@ -1697,6 +1716,28 @@ export default function Dashboard() {
                               ) : (
                                 <ToggleLeft size={44} className="text-slate-300" />
                               )}
+                            </button>
+                          </div>
+
+                          <div className="bg-[#3159C1]/5 border border-[#3159C1]/20 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                            <div className="space-y-1">
+                              <h4 className="text-sm font-bold text-slate-800">Testar Servidor de E-mail (SMTP)</h4>
+                              <p className="text-xs text-slate-500 leading-relaxed">
+                                Envia um e-mail de teste imediato para <span className="font-semibold">{currentUser.email}</span> para verificar se a conexão SMTP com o Gmail está funcionando corretamente.
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleTestEmailSend}
+                              disabled={isTestingEmail}
+                              className="px-4 py-2.5 bg-[#3159C1] hover:bg-[#234294] disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 flex-shrink-0"
+                            >
+                              {isTestingEmail ? (
+                                <>
+                                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                  Testando...
+                                </>
+                              ) : 'Enviar E-mail de Teste'}
                             </button>
                           </div>
 
