@@ -76,16 +76,15 @@ export default function Login() {
     // Simular autenticação
     setTimeout(() => {
       if (userToLogin) {
-        const isCorrectPassword = 
-          (userToLogin.role === 'admin' && (password === 'admin' || password === '')) || 
-          (userToLogin.role !== 'admin' && (password === '123' || password === ''));
+        const defaultPass = userToLogin.role === 'admin' ? 'admin' : '123';
+        const expectedPassword = userToLogin.password || defaultPass;
+        const isCorrectPassword = password === expectedPassword || password === '';
 
         if (isCorrectPassword) {
           localStorage.setItem('lider_active_broker_id', userToLogin.id);
           router.push('/dashboard');
         } else {
-          const expected = userToLogin.role === 'admin' ? '"admin"' : '"123"';
-          setError(`Senha incorreta! Use ${expected} ou deixe em branco para testar.`);
+          setError(`Senha incorreta! Use "${expectedPassword}" ou deixe em branco para testar.`);
           setIsLoading(false);
         }
       }
