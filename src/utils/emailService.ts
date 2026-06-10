@@ -1,7 +1,6 @@
 import { UserCRM } from './leadsStore';
 
-// Função para enviar requisição à rota de API do servidor
-const sendEmail = async (to: string, subject: string, html: string): Promise<boolean> => {
+const sendEmail = async (to: string, subject: string, html: string): Promise<{ success: boolean; error?: string }> => {
   try {
     const response = await fetch('/api/send-email', {
       method: 'POST',
@@ -10,10 +9,14 @@ const sendEmail = async (to: string, subject: string, html: string): Promise<boo
       },
       body: JSON.stringify({ to, subject, html }),
     });
-    return response.ok;
-  } catch (e) {
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      return { success: false, error: data.error || `Erro HTTP ${response.status}` };
+    }
+    return { success: true };
+  } catch (e: any) {
     console.error('Falha ao enviar requisição HTTP para o serviço de e-mail:', e);
-    return false;
+    return { success: false, error: e.message || 'Erro de rede ou conexão com o servidor' };
   }
 };
 
@@ -60,7 +63,7 @@ const getBaseHtml = (title: string, content: string) => `
 /**
  * Envia notificação de alteração de dados do perfil próprio
  */
-export const sendProfileUpdateEmail = async (user: UserCRM, updatedFields: string[]): Promise<boolean> => {
+export const sendProfileUpdateEmail = async (user: UserCRM, updatedFields: string[]): Promise<{ success: boolean; error?: string }> => {
   const fieldsText = updatedFields.map(field => `<li><strong>${field}</strong></li>`).join('');
   const html = getBaseHtml(
     'Alerta de Segurança: Perfil Atualizado',
@@ -89,7 +92,7 @@ export const sendProfileUpdateEmail = async (user: UserCRM, updatedFields: strin
 /**
  * Envia credenciais redefinidas ou criadas para o usuário
  */
-export const sendPasswordResetEmail = async (user: UserCRM, newPassword: string): Promise<boolean> => {
+export const sendPasswordResetEmail = async (user: UserCRM, newPassword: string): Promise<{ success: boolean; error?: string }> => {
   const html = getBaseHtml(
     'Suas Credenciais Foram Redefinidas',
     `

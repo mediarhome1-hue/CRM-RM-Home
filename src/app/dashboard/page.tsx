@@ -403,7 +403,11 @@ export default function Dashboard() {
       const freshUser = updatedUsers.find(u => u.id === editingUser.id);
       if (freshUser) {
         import('../../utils/emailService').then(({ sendPasswordResetEmail }) => {
-          sendPasswordResetEmail(freshUser, editUserPassword);
+          sendPasswordResetEmail(freshUser, editUserPassword).then(res => {
+            if (!res.success) {
+              alert(`Aviso: Senha alterada com sucesso, mas a notificação por e-mail falhou:\n\nDetalhe: ${res.error}`);
+            }
+          });
         });
       }
     }
@@ -469,7 +473,11 @@ export default function Dashboard() {
       // Disparar e-mail se houve alteração e a notificação estiver ativa
       if (changedFields.length > 0 && profileEmailNotify) {
         import('../../utils/emailService').then(({ sendProfileUpdateEmail }) => {
-          sendProfileUpdateEmail(freshUser || currentUser, changedFields);
+          sendProfileUpdateEmail(freshUser || currentUser, changedFields).then(res => {
+            if (!res.success) {
+              alert(`Aviso: Perfil atualizado no banco, mas a notificação por e-mail falhou:\n\nDetalhe: ${res.error}`);
+            }
+          });
         });
       }
       setTimeout(() => {

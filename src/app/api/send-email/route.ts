@@ -12,16 +12,19 @@ export async function POST(req: Request) {
       );
     }
 
-    const smtpUser = process.env.SMTP_USER || 'medialiderimobiliaria@gmail.com';
-    const smtpPassword = process.env.SMTP_PASSWORD;
+    let smtpUser = (process.env.SMTP_USER || 'medialiderimobiliaria@gmail.com').trim().replace(/^['"]|['"]$/g, '');
+    let smtpPassword = process.env.SMTP_PASSWORD;
 
     if (!smtpPassword) {
       console.warn('Variável de ambiente SMTP_PASSWORD não configurada no servidor.');
       return NextResponse.json(
-        { error: 'Credenciais SMTP não configuradas no servidor.' },
+        { error: 'Credenciais SMTP (SMTP_PASSWORD) não configuradas no servidor Vercel. Verifique as Variáveis de Ambiente.' },
         { status: 500 }
       );
     }
+
+    // Sanitizar a senha (remover aspas duplas, simples e espaços em branco que podem ter sido colados acidentalmente)
+    smtpPassword = smtpPassword.trim().replace(/^['"]|['"]$/g, '');
 
     // Configurar transporte SMTP seguro com SSL (porta 465) do Gmail
     const transporter = nodemailer.createTransport({
@@ -32,7 +35,19 @@ export async function POST(req: Request) {
         user: smtpUser,
         pass: smtpPassword,
       },
+      connectionTimeout: 10000, // 10 segundos de timeout
     });
+
+    // Validar a conexão SMTP antes de enviar para expor o erro exato de autenticação ou rede
+    try {
+      await transporter.verify();
+    } catch (verifyError: any) {
+      console.error('Falha na verificação de conexão/autenticação SMTP:', verifyError);
+      return NextResponse.json(
+        { error: `Falha de autenticação/conexão no Gmail SMTP: ${verifyError.message || verifyError}. Verifique se o e-mail está correto e se a Senha de App do Google foi gerada sem espaços.` },
+        { status: 500 }
+      );
+    }
 
     // Enviar o e-mail
     const info = await transporter.sendMail({
@@ -48,7 +63,7 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error('Erro ao processar envio de e-mail:', error);
     return NextResponse.json(
-      { error: error.message || 'Falha ao enviar e-mail por SMTP.' },
+      { error: error.message || 'Falha geral ao enviar e-mail por SMTP.' },
       { status: 500 }
     );
   }
