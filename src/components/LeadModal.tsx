@@ -183,17 +183,25 @@ export default function LeadModal({ isOpen, onClose, propertyName, propertyBg }:
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="bg-gray-50 border border-gray-100 rounded-3xl p-5 w-full flex items-center gap-4 mb-6 text-left"
+                    className="bg-gray-50 border border-gray-100 rounded-3xl p-5 w-full flex items-start gap-4 mb-6 text-left"
                   >
                     <img
                       src={assignedBroker.avatar}
                       alt={assignedBroker.name}
-                      className="w-14 h-14 rounded-full object-cover border-2 border-[#00A3FF]"
+                      className="w-14 h-14 rounded-full object-cover border-2 border-[#00A3FF] flex-shrink-0"
                     />
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <span className="text-xs font-black text-[#00A3FF] uppercase tracking-wider block">Corretor Responsável</span>
                       <span className="font-bold text-gray-900 text-lg block">{assignedBroker.name}</span>
-                      <span className="text-xs font-medium text-gray-400 block">{assignedBroker.role}</span>
+                      <span className="text-xs font-semibold text-gray-400 block">
+                        {assignedBroker.role === 'admin' ? 'Direção' : assignedBroker.role === 'manager' ? 'Gerente' : 'Corretor'}
+                        {assignedBroker.creci ? ` • CRECI ${assignedBroker.creci}` : ''}
+                      </span>
+                      {assignedBroker.bio && (
+                        <p className="text-[11px] text-gray-500 mt-2 italic border-t border-gray-200/60 pt-2 leading-relaxed">
+                          "{assignedBroker.bio}"
+                        </p>
+                      )}
                     </div>
                   </motion.div>
                 )}
