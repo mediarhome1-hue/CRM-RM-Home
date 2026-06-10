@@ -75,6 +75,7 @@ export default function Dashboard() {
 
   // Personal Profile Form State (Minha Conta)
   const [profileName, setProfileName] = useState('');
+  const [profileEmail, setProfileEmail] = useState('');
   const [profilePhone, setProfilePhone] = useState('');
   const [profileAvatar, setProfileAvatar] = useState('');
   const [profilePassword, setProfilePassword] = useState('');
@@ -133,6 +134,7 @@ export default function Dashboard() {
 
     // Initialize personal profile form
     setProfileName(user.name);
+    setProfileEmail(user.email);
     setProfilePhone(user.phone);
     setProfileAvatar(user.avatar);
     setProfilePassword(user.password || '');
@@ -157,6 +159,7 @@ export default function Dashboard() {
           setBrokerPhone(updatedUser.phone);
           setIsWhatsAppActive(updatedUser.isWhatsAppConnected);
           setProfileName(updatedUser.name);
+          setProfileEmail(updatedUser.email);
           setProfilePhone(updatedUser.phone);
           setProfileAvatar(updatedUser.avatar);
           setProfilePassword(updatedUser.password || '');
@@ -381,6 +384,7 @@ export default function Dashboard() {
       if (freshUser) {
         setCurrentUser(freshUser);
         setProfileName(freshUser.name);
+        setProfileEmail(freshUser.email);
         setProfilePhone(freshUser.phone);
         setProfileAvatar(freshUser.avatar);
         setProfilePassword(freshUser.password || '');
@@ -414,7 +418,8 @@ export default function Dashboard() {
         creci: profileCreci || undefined,
         bio: profileBio || undefined,
         birthdate: profileBirthdate || undefined,
-        emailNotifications: profileEmailNotify
+        emailNotifications: profileEmailNotify,
+        ...(currentUser.role === 'admin' && profileEmail ? { email: profileEmail } : {})
       };
 
       const updatedUsers = updateUser(currentUser.id, updates);
@@ -424,6 +429,7 @@ export default function Dashboard() {
       if (freshUser) {
         setCurrentUser(freshUser);
         setProfileName(freshUser.name);
+        setProfileEmail(freshUser.email);
         setProfilePhone(freshUser.phone);
         setProfileAvatar(freshUser.avatar);
         setProfilePassword(freshUser.password || '');
@@ -1507,14 +1513,23 @@ export default function Dashboard() {
                             <div className="space-y-1">
                               <div className="flex justify-between items-center">
                                 <label className="text-xs font-bold text-slate-600 block">E-mail de Acesso (Login)</label>
-                                <span className="text-[10px] font-black uppercase text-slate-400 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">Imutável</span>
+                                {currentUser.role === 'admin' ? (
+                                  <span className="text-[10px] font-black uppercase text-[#3159C1] bg-[#3159C1]/10 border border-[#3159C1]/20 px-2 py-0.5 rounded">Alterável (Diretoria)</span>
+                                ) : (
+                                  <span className="text-[10px] font-black uppercase text-slate-400 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">Imutável</span>
+                                )}
                               </div>
                               <input
                                 type="email"
-                                disabled
-                                value={currentUser.email}
-                                className="w-full px-4 py-3 bg-slate-100 border border-slate-200 text-slate-400 rounded-xl text-sm cursor-not-allowed focus:outline-none font-medium"
-                                title="O e-mail de acesso não pode ser alterado para segurança da sua conta."
+                                disabled={currentUser.role !== 'admin'}
+                                value={profileEmail}
+                                onChange={(e) => setProfileEmail(e.target.value)}
+                                className={`w-full px-4 py-3 border rounded-xl text-sm focus:outline-none font-medium ${
+                                  currentUser.role === 'admin'
+                                    ? 'bg-gray-50 border-slate-200 focus:ring-1 focus:ring-[#3159C1]'
+                                    : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
+                                }`}
+                                title={currentUser.role === 'admin' ? "E-mail de acesso da Diretoria" : "O e-mail de acesso não pode ser alterado para segurança da sua conta."}
                               />
                             </div>
                           </div>
