@@ -16,7 +16,7 @@ import {
   getUsers, createUser, updateUser, deleteUser, toggleUserStatus,
   getLeads, saveLeads, addLeadManual, 
   updateLeadStatus, addLeadNote, deleteLead,
-  runTransbordoCheck,
+  runTransbordoCheck, reassignLead,
   UserCRM, Lead, UserRole, INITIAL_USERS, Message
 } from '../../utils/leadsStore';
 import { supabase, isSupabaseConfigured } from '../../utils/supabaseClient';
@@ -292,6 +292,23 @@ export default function Dashboard() {
     };
   }, [activeChatLead]);
 
+  // Keep selectedLead in sync with leads updates
+  useEffect(() => {
+    if (selectedLead) {
+      const freshLead = leads.find(l => l.id === selectedLead.id);
+      if (freshLead) {
+        if (
+          freshLead.assignedBrokerId !== selectedLead.assignedBrokerId ||
+          freshLead.status !== selectedLead.status ||
+          freshLead.notes.length !== selectedLead.notes.length ||
+          freshLead.lastActivityAt !== selectedLead.lastActivityAt
+        ) {
+          setSelectedLead(freshLead);
+        }
+      }
+    }
+  }, [leads, selectedLead]);
+
   const handleLogout = () => {
     localStorage.removeItem('lider_active_broker_id');
     router.push('/login');
@@ -311,6 +328,15 @@ export default function Dashboard() {
     setLeads(updated);
     if (selectedLead && selectedLead.id === leadId) {
       setSelectedLead({ ...selectedLead, status });
+    }
+  };
+
+  const handleReassignLead = (leadId: string, newBrokerId: string) => {
+    if (!currentUser) return;
+    const updated = reassignLead(leadId, newBrokerId, currentUser.name);
+    setLeads(updated);
+    if (selectedLead && selectedLead.id === leadId) {
+      setSelectedLead(updated.find(l => l.id === leadId) || null);
     }
   };
 
@@ -2158,6 +2184,29 @@ export default function Dashboard() {
                     <div>
                       <span className="text-[10px] text-slate-500 block font-bold">RECEBIDO EM</span>
                       {new Date(selectedLead.createdAt).toLocaleString('pt-BR')}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm font-medium border-t border-slate-200 pt-3">
+                    <User size={16} className="text-[#3159C1]" />
+                    <div className="flex-1">
+                      <span className="text-[10px] text-slate-500 block font-bold">CORRETOR RESPONSÁVEL</span>
+                      {currentUser.role === 'admin' || currentUser.role === 'manager' ? (
+                        <select
+                          value={selectedLead.assignedBrokerId}
+                          onChange={(e) => handleReassignLead(selectedLead.id, e.target.value)}
+                          className="bg-transparent text-sm font-bold text-[#3159C1] hover:text-[#234294] focus:outline-none cursor-pointer hover:underline py-0.5 border-none p-0 focus:ring-0 max-w-full"
+                        >
+                          {users.map(u => (
+                            <option key={u.id} value={u.id} className="text-slate-800 bg-white font-medium">
+                              {u.name} ({u.role === 'admin' ? 'Diretoria' : u.role === 'manager' ? 'Gerente' : 'Corretor'})
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="text-slate-800 font-bold block mt-0.5">
+                          {users.find(u => u.id === selectedLead.assignedBrokerId)?.name || 'Não atribuído'}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

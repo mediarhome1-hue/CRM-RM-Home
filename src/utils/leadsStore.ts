@@ -651,3 +651,29 @@ export const runTransbordoCheck = (overrideMinutes: number = 30): { updatedLeads
 
   return { updatedLeadsCount: updatedCount, details };
 };
+
+export const reassignLead = (leadId: string, newBrokerId: string, changedBy: string): Lead[] => {
+  const brokers = getUsers();
+  const newBroker = brokers.find(b => b.id === newBrokerId);
+  const newBrokerName = newBroker ? newBroker.name : newBrokerId;
+
+  const leads = getLeads().map(l => {
+    if (l.id === leadId) {
+      const oldBroker = brokers.find(b => b.id === l.assignedBrokerId);
+      const oldBrokerName = oldBroker ? oldBroker.name : l.assignedBrokerId;
+      const noteText = `Lead reatribuído de ${oldBrokerName} para ${newBrokerName} por ${changedBy} em ${new Date().toLocaleString('pt-BR')}`;
+      
+      const updated: Lead = { 
+        ...l, 
+        assignedBrokerId: newBrokerId,
+        notes: [...l.notes, noteText],
+        lastActivityAt: new Date().toISOString()
+      };
+      pushLeadToSupabase(updated);
+      return updated;
+    }
+    return l;
+  });
+  saveLeads(leads);
+  return leads;
+};
