@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,14 +10,14 @@ import {
   Sparkles, CheckCircle2, QrCode, ToggleLeft, ToggleRight,
   TrendingUp, Award, Clock, ArrowRight, ShieldCheck, Search, Trash2,
   Shield, UserCheck, AlertTriangle, RefreshCw, Layers, Edit, Check, User,
-  Camera, BadgeCheck, Lock, Bell, X, Eye, EyeOff
+  Camera, BadgeCheck, Lock, Bell, X, Eye, EyeOff, Send, MessageCircle
 } from 'lucide-react';
 import { 
   getUsers, createUser, updateUser, deleteUser, toggleUserStatus,
   getLeads, saveLeads, addLeadManual, 
   updateLeadStatus, addLeadNote, deleteLead,
   runTransbordoCheck,
-  UserCRM, Lead, UserRole, INITIAL_USERS
+  UserCRM, Lead, UserRole, INITIAL_USERS, Message
 } from '../../utils/leadsStore';
 import { supabase, isSupabaseConfigured } from '../../utils/supabaseClient';
 
@@ -90,6 +90,15 @@ export default function Dashboard() {
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [showEmailBanner, setShowEmailBanner] = useState(false);
   const [isTestingEmail, setIsTestingEmail] = useState(false);
+
+  // WhatsApp Chat States
+  const [activeChatLead, setActiveChatLead] = useState<Lead | null>(null);
+  const [chatMessages, setChatMessages] = useState<Message[]>([]);
+  const [newMessageText, setNewMessageText] = useState('');
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [chatSearchQuery, setChatSearchQuery] = useState('');
+  const [isSimulatingClient, setIsSimulatingClient] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Search Filter
   const [searchTerm, setSearchTerm] = useState('');
@@ -233,6 +242,55 @@ export default function Dashboard() {
       }
     };
   }, [router]);
+
+  // Auto-scroll when messages change or chat opens
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
+
+  // Load messages and setup Realtime subscription when lead changes
+  useEffect(() => {
+    if (!activeChatLead || !isSupabaseConfigured) {
+      setChatMessages([]);
+      return;
+    }
+
+    let isMounted = true;
+
+    // 1. Carregar mensagens iniciais
+    import('../../utils/leadsStore').then(({ getMessagesForLead }) => {
+      getMessagesForLead(activeChatLead.id).then(msgs => {
+        if (isMounted) {
+          setChatMessages(msgs);
+        }
+      });
+    });
+
+    // 2. Inscrever no canal em tempo real para escutar novas mensagens do lead ativo
+    const channel = supabase
+      .channel(`chat_messages:${activeChatLead.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `lead_id=eq.${activeChatLead.id}`
+      }, (payload) => {
+        if (!isMounted) return;
+        import('../../utils/leadsStore').then(({ mapMessageFromDB }) => {
+          const newMsg = mapMessageFromDB(payload.new);
+          setChatMessages(prev => {
+            if (prev.some(m => m.id === newMsg.id)) return prev;
+            return [...prev, newMsg];
+          });
+        });
+      })
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      channel.unsubscribe();
+    };
+  }, [activeChatLead]);
 
   const handleLogout = () => {
     localStorage.removeItem('lider_active_broker_id');
@@ -505,6 +563,92 @@ export default function Dashboard() {
     }
   };
 
+  // --- WHATSAPP CHAT FLOWS ---
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeChatLead || !newMessageText.trim()) return;
+
+    setIsSendingMessage(true);
+    const textToSend = newMessageText.trim();
+    try {
+      const response = await fetch('/api/whatsapp/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          leadId: activeChatLead.id,
+          to: activeChatLead.phone,
+          text: textToSend,
+        }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || `HTTP ${response.status}`);
+      }
+
+      setNewMessageText('');
+    } catch (err: any) {
+      console.error('Erro ao enviar mensagem:', err);
+      alert(`Falha ao enviar mensagem de WhatsApp: ${err.message}`);
+    } finally {
+      setIsSendingMessage(false);
+    }
+  };
+
+  const handleSimulateClientIncomingMessage = async () => {
+    if (!activeChatLead) return;
+    setIsSimulatingClient(true);
+    try {
+      const messageBody = {
+        object: 'whatsapp_business_account',
+        entry: [
+          {
+            id: '123456',
+            changes: [
+              {
+                value: {
+                  messaging_product: 'whatsapp',
+                  messages: [
+                    {
+                      from: activeChatLead.phone,
+                      id: `wamid.SimulatedClientReply${Math.random().toString(36).substring(2, 9)}`,
+                      timestamp: Math.floor(Date.now() / 1000).toString(),
+                      text: {
+                        body: 'Olá! Sou o cliente e esta é uma simulação de resposta em tempo real no CRM!'
+                      },
+                      type: 'text'
+                    }
+                  ]
+                },
+                field: 'messages'
+              }
+            ]
+          }
+        ]
+      };
+
+      const response = await fetch('/api/whatsapp/webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(messageBody),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(errText);
+      }
+    } catch (e: any) {
+      console.error('Falha ao simular resposta do cliente:', e);
+      alert(`Erro na simulação do webhook: ${e.message || e}`);
+    } finally {
+      setIsSimulatingClient(false);
+    }
+  };
+
   // --- SIMULAÇÃO DE TRANSBORDO (30 MINUTOS) ---
   const handleTriggerTransbordo = () => {
     const { updatedLeadsCount, details } = runTransbordoCheck(30); // Executa com limite padrão de 30min
@@ -605,22 +749,19 @@ export default function Dashboard() {
             <Users size={18} /> {currentUser.role === 'admin' ? 'Banco de Leads' : 'Todos os Leads'}
           </button>
 
+          <button 
+            onClick={() => setActiveTab('whatsapp')}
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === 'whatsapp' ? 'bg-[#3159C1] text-white shadow-lg shadow-[#3159C1]/15' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'}`}
+          >
+            <div className="flex items-center gap-3">
+              <MessageSquare size={18} /> WhatsApp Chat
+            </div>
+            <span className="text-[9px] bg-emerald-500/10 text-emerald-600 px-2 py-0.5 rounded-full font-black border border-emerald-500/20">CHAT</span>
+          </button>
+
           {/* Broker Specific Tabs */}
           {currentUser.role === 'broker' && (
             <>
-              <button 
-                onClick={() => setActiveTab('whatsapp')}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === 'whatsapp' ? 'bg-[#3159C1] text-white shadow-lg shadow-[#3159C1]/15' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'}`}
-              >
-                <div className="flex items-center gap-3">
-                  <MessageSquare size={18} /> WhatsApp Integration
-                </div>
-                {isWhatsAppActive ? (
-                  <span className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse" />
-                ) : (
-                  <span className="w-2.5 h-2.5 bg-slate-300 rounded-full" />
-                )}
-              </button>
               <button 
                 onClick={() => setActiveTab('analytics')}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === 'analytics' ? 'bg-[#3159C1] text-white shadow-lg shadow-[#3159C1]/15' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'}`}
@@ -1144,145 +1285,290 @@ export default function Dashboard() {
               {/* WhatsApp API Integration Instructions */}
               <div className="bg-white rounded-3xl p-8 border border-slate-200 space-y-6">
                 <div>
-                  <span className="text-xs font-black tracking-widest text-green-600 uppercase block mb-1">Guia Técnico</span>
-                  <h3 className="text-2xl font-black text-slate-800">Como conectar a API real do WhatsApp?</h3>
-                  <p className="text-slate-500 text-sm mt-1">Conecte o sistema a uma API do WhatsApp (ex: Evolution API ou Baileys) para disparar mensagens reais no WhatsApp dos corretores.</p>
+                  <span className="text-xs font-black tracking-widest text-green-600 uppercase block mb-1">Integração com Meta</span>
+                  <h3 className="text-2xl font-black text-slate-800">Conexão Oficial WhatsApp Business API</h3>
+                  <p className="text-slate-500 text-sm mt-1">Siga as instruções abaixo para vincular o número oficial da sua imobiliária com o painel de chat do CRM.</p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
-                  <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-2">
-                    <span className="font-black text-[#3159C1] block">1. HOSPEDAR A API</span>
-                    <p className="text-slate-600 leading-relaxed">
-                      Utilize a **Evolution API** (software open-source baseado em Node.js/Baileys). Hospede-a em um servidor como VPS (Docker) ou serviços como Render.
-                    </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-xs">
+                  {/* Meta configuration steps */}
+                  <div className="space-y-4">
+                    <span className="font-black text-[#3159C1] text-sm block">1. CONFIGURAÇÃO NA META (DEVELOPERS)</span>
+                    <ol className="space-y-3 text-slate-600 list-decimal pl-4 leading-relaxed font-medium">
+                      <li>Acesse o portal <a href="https://developers.facebook.com/" target="_blank" rel="noopener noreferrer" className="text-[#3159C1] underline font-bold">Meta for Developers</a> e crie um aplicativo do tipo <strong>Business</strong>.</li>
+                      <li>Adicione o produto <strong>WhatsApp</strong> ao aplicativo.</li>
+                      <li>No menu lateral, vá em <strong>WhatsApp</strong> ➡️ <strong>Configuração de API</strong> para obter o seu <strong>ID do Número de Telefone</strong>.</li>
+                      <li>Vá em <strong>WhatsApp</strong> ➡️ <strong>Configuração</strong> e adicione a URL do Webhook do CRM para escutar mensagens.</li>
+                    </ol>
+
+                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2 mt-4">
+                      <span className="font-black text-slate-700 block uppercase text-[10px]">Dados para colar na Meta:</span>
+                      <div className="space-y-1">
+                        <label className="text-[10px] text-slate-500 block font-bold">Callback URL (Webhook)</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            readOnly
+                            value="https://liderimobiliariape.com.br/api/whatsapp/webhook"
+                            className="flex-1 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-[10px] font-mono text-slate-600 select-all focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText("https://liderimobiliariape.com.br/api/whatsapp/webhook");
+                              alert("URL do Webhook copiada!");
+                            }}
+                            className="px-3 bg-[#3159C1] hover:bg-[#234294] text-white rounded-lg font-bold text-[10px]"
+                          >
+                            Copiar
+                          </button>
+                        </div>
+                      </div>
+                      <div className="space-y-1 pt-1">
+                        <label className="text-[10px] text-slate-500 block font-bold">Verify Token</label>
+                        <input
+                          type="text"
+                          readOnly
+                          value="crm_lider_token_default"
+                          className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-[10px] font-mono text-slate-600 select-all focus:outline-none"
+                        />
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-2">
-                    <span className="font-black text-[#3159C1] block">2. ATIVAR WEBHOOKS</span>
-                    <p className="text-slate-600 leading-relaxed">
-                      Crie um endpoint no Next.js (ex: `/api/leads`). Configure a Evolution API para enviar uma notificação HTTP POST para o endpoint sempre que um novo lead for gerado, disparando o envio da mensagem formatada ao corretor responsável.
+                  {/* Vercel Env Vars */}
+                  <div className="space-y-4">
+                    <span className="font-black text-[#3159C1] text-sm block">2. VARIÁVEIS DE AMBIENTE NA VERCEL</span>
+                    <p className="text-slate-600 leading-relaxed font-medium">
+                      Para que o servidor conecte-se com a Meta, configure as seguintes variáveis no painel da **Vercel** do seu projeto:
                     </p>
-                  </div>
-
-                  <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-2">
-                    <span className="font-black text-[#3159C1] block">3. DISPARAR A MENSAGEM</span>
-                    <p className="text-slate-600 leading-relaxed">
-                      No endpoint do Next.js, chame a rota `/message/sendText` da API passando o token de autorização, o número do corretor e o texto com os dados do lead prontos para iniciar o contato.
-                    </p>
+                    <div className="space-y-3 bg-slate-50 p-5 rounded-2xl border border-slate-100 font-medium">
+                      <div className="border-b border-slate-200/60 pb-2.5">
+                        <span className="font-mono text-[10px] font-black text-slate-800 bg-white border border-slate-200 px-1.5 py-0.5 rounded">WHATSAPP_PHONE_NUMBER_ID</span>
+                        <p className="text-[10px] text-slate-500 mt-1">O ID do seu número oficial exibido no painel de desenvolvedores da Meta.</p>
+                      </div>
+                      <div className="border-b border-slate-200/60 pb-2.5">
+                        <span className="font-mono text-[10px] font-black text-slate-800 bg-white border border-slate-200 px-1.5 py-0.5 rounded">WHATSAPP_ACCESS_TOKEN</span>
+                        <p className="text-[10px] text-slate-500 mt-1">O Token de acesso permanente gerado nas configurações de Usuários do Sistema do Gerenciador de Negócios da Meta.</p>
+                      </div>
+                      <div>
+                        <span className="font-mono text-[10px] font-black text-slate-800 bg-white border border-slate-200 px-1.5 py-0.5 rounded">WHATSAPP_VERIFY_TOKEN</span>
+                        <p className="text-[10px] text-slate-500 mt-1">Opcional. Se quiser usar outro token de verificação diferente de <code>crm_lider_token_default</code>.</p>
+                      </div>
+                    </div>
+                    <div className="bg-amber-50 border border-amber-100 text-amber-800 p-3.5 rounded-xl text-[10px] font-medium leading-relaxed font-semibold">
+                      💡 **Modo Simulação**: Enquanto essas variáveis não forem preenchidas na Vercel, o chat operará em modo simulado. Você poderá enviar mensagens e simular as respostas dos clientes clicando em **"Simular Resposta"** para testar toda a interface de chat em tempo real.
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* 5. WHATSAPP & STATS (BROKERS ONLY) */}
-          {currentUser.role === 'broker' && activeTab === 'whatsapp' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="bg-white rounded-3xl p-8 border border-slate-200 flex flex-col space-y-6">
-                <div>
-                  <span className="text-xs font-black tracking-widest text-[#3159C1] uppercase block mb-1">Notificações Push</span>
-                  <h3 className="text-2xl font-black text-slate-800">Conecte seu WhatsApp pessoal</h3>
-                  <p className="text-slate-400 text-sm mt-1">Digite seu celular de atendimento abaixo e ative para receber alertas no WhatsApp quando novos leads caírem no seu painel.</p>
-                </div>
-
-                <form onSubmit={handleWhatsAppSave} className="space-y-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-600 block">Número do WhatsApp</label>
+          {/* 5. WHATSAPP REALTIME CHAT TAB */}
+          {activeTab === 'whatsapp' && (
+            <div className="bg-white rounded-3xl border border-slate-200/60 overflow-hidden shadow-sm flex flex-col md:flex-row h-[680px]">
+              
+              {/* LEFT COLUMN: Leads list */}
+              <div className="w-full md:w-[340px] border-r border-slate-100 flex flex-col bg-slate-50/50">
+                {/* Search Header */}
+                <div className="p-4 border-b border-slate-100 bg-white space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-md font-bold text-slate-800 flex items-center gap-2">
+                      <MessageCircle className="text-[#3159C1]" size={18} /> Conversas
+                    </h3>
+                    <span className="text-[10px] bg-[#3159C1]/10 text-[#3159C1] px-2 py-0.5 rounded-full font-black">
+                      {getLeadsByRole().length} LEADS
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                     <input
-                      type="tel"
-                      required
-                      placeholder="Ex: +55 81 99999-9999"
-                      value={brokerPhone}
-                      onChange={(e) => setBrokerPhone(e.target.value)}
-                      className="w-full px-4 py-4 rounded-xl bg-gray-50 border border-slate-200 text-slate-800 font-bold focus:outline-none focus:ring-1 focus:ring-[#3159C1]"
+                      type="text"
+                      placeholder="Buscar cliente..."
+                      value={chatSearchQuery}
+                      onChange={(e) => setChatSearchQuery(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 text-xs rounded-xl bg-slate-50 border border-slate-200/60 text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#3159C1] focus:bg-white font-medium"
                     />
                   </div>
+                </div>
 
-                  <div className="flex items-center justify-between p-4 bg-slate-900/40 border border-slate-700/30 rounded-xl">
-                    <div>
-                      <h4 className="font-bold text-xs text-slate-800">Alertas de Lead</h4>
-                      <p className="text-slate-500 text-[10px]">Ativar notificação push automática.</p>
+                {/* Leads list body */}
+                <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                  {getLeadsByRole()
+                    .filter(lead => 
+                      lead.name.toLowerCase().includes(chatSearchQuery.toLowerCase()) ||
+                      lead.phone.includes(chatSearchQuery)
+                    )
+                    .map(lead => {
+                      const isActive = activeChatLead?.id === lead.id;
+                      const assignedUser = users.find(u => u.id === lead.assignedBrokerId);
+                      return (
+                        <button
+                          key={lead.id}
+                          onClick={() => setActiveChatLead(lead)}
+                          className={`w-full text-left p-3 rounded-2xl transition-all flex items-start gap-3 ${
+                            isActive 
+                              ? 'bg-[#3159C1] text-white shadow-md shadow-[#3159C1]/15' 
+                              : 'hover:bg-slate-100 text-slate-700 bg-white/60 border border-slate-100'
+                          }`}
+                        >
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${
+                            isActive ? 'bg-white/20 text-white' : 'bg-[#3159C1]/10 text-[#3159C1]'
+                          }`}>
+                            {lead.name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0 space-y-0.5">
+                            <div className="flex justify-between items-center">
+                              <span className="font-bold text-xs truncate block">{lead.name}</span>
+                              <span className={`text-[9px] ${isActive ? 'text-white/70' : 'text-slate-400'}`}>
+                                {new Date(lead.lastActivityAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                            <span className={`text-[10px] truncate block ${isActive ? 'text-white/80 font-medium' : 'text-slate-500 font-medium'}`}>
+                              {lead.phone}
+                            </span>
+                            <div className="flex items-center gap-1.5 pt-0.5">
+                              <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold uppercase ${
+                                isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                              }`}>
+                                {lead.propertyName}
+                              </span>
+                              {currentUser.role === 'admin' && assignedUser && (
+                                <span className={`text-[8px] italic truncate ${isActive ? 'text-white/70' : 'text-slate-400'}`}>
+                                  resp: {assignedUser.name.split(' ')[0]}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+
+                  {getLeadsByRole().length === 0 && (
+                    <div className="text-center py-12 px-4 space-y-2">
+                      <p className="text-xs text-slate-400 italic">Nenhum cliente disponível no seu fluxo.</p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setIsWhatsAppActive(!isWhatsAppActive)}
-                      className="text-slate-400 focus:outline-none"
-                    >
-                      {isWhatsAppActive ? (
-                        <ToggleRight className="text-green-500 w-12 h-12" />
-                      ) : (
-                        <ToggleLeft className="text-slate-500 w-12 h-12" />
-                      )}
-                    </button>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                    <button
-                      type="submit"
-                      className="flex-1 py-4 bg-[#3159C1] hover:bg-[#2348a8] text-white font-bold rounded-2xl shadow-lg transition-all text-xs uppercase"
-                    >
-                      Salvar Telefone
-                    </button>
-                    <button
-                      type="button"
-                      onClick={triggerTestLeadSim}
-                      disabled={!isWhatsAppActive}
-                      className="px-6 py-4 border border-slate-700 hover:bg-slate-750 text-slate-600 font-bold rounded-2xl transition-all text-xs uppercase flex items-center justify-center gap-2 disabled:opacity-40"
-                    >
-                      <Sparkles size={14} /> Enviar Teste
-                    </button>
-                  </div>
-                </form>
+                  )}
+                </div>
               </div>
 
-              <div className="bg-white rounded-3xl p-8 border border-slate-200 flex flex-col items-center justify-center text-center">
-                {!isWhatsAppActive ? (
+              {/* RIGHT COLUMN: Chat workspace */}
+              <div className="flex-1 flex flex-col bg-slate-50">
+                {activeChatLead ? (
                   <>
-                    <div className="w-14 h-14 bg-slate-100 border border-slate-200 rounded-full flex items-center justify-center text-slate-400 mb-6">
-                      <QrCode size={28} />
+                    {/* Active Chat Header */}
+                    <div className="p-4 border-b border-slate-200/60 bg-white flex items-center justify-between shadow-2xs relative z-10">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-[#3159C1]/10 text-[#3159C1] flex items-center justify-center font-bold text-sm">
+                          {activeChatLead.name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-sm text-slate-800">{activeChatLead.name}</h4>
+                          <div className="flex items-center gap-2 text-[10px] text-slate-500 font-medium">
+                            <span>{activeChatLead.phone}</span>
+                            <span>•</span>
+                            <span className="text-[#3159C1] font-bold">{activeChatLead.propertyName}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Simulation Controller */}
+                      <button
+                        type="button"
+                        onClick={handleSimulateClientIncomingMessage}
+                        disabled={isSimulatingClient}
+                        className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 disabled:bg-slate-100 text-emerald-700 disabled:text-slate-400 font-bold rounded-xl text-[10px] uppercase tracking-wider border border-emerald-200/60 transition-all flex items-center gap-1.5"
+                      >
+                        {isSimulatingClient ? (
+                          <>
+                            <div className="w-3 h-3 border-2 border-emerald-700 border-t-transparent rounded-full animate-spin" />
+                            Simulando...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles size={11} /> Simular Resposta
+                          </>
+                        )}
+                      </button>
                     </div>
-                    <h3 className="text-lg font-black text-slate-800 mb-1">Gerar Integração API</h3>
-                    <p className="text-slate-500 text-xs max-w-[280px] mb-6">Conecte o CRM ao seu WhatsApp lendo o QR code virtual.</p>
-                    <button
-                      onClick={() => setIsWhatsAppActive(true)}
-                      className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all"
-                    >
-                      Conectar Dispositivo
-                    </button>
+
+                    {/* Messages Body */}
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#f0f2f5]/40">
+                      {chatMessages.map((msg) => {
+                        const isBroker = msg.sender === 'broker';
+                        return (
+                          <div
+                            key={msg.id}
+                            className={`flex ${isBroker ? 'justify-end' : 'justify-start'}`}
+                          >
+                            <div className={`max-w-[70%] rounded-2xl px-4 py-3 shadow-xs text-xs space-y-1 ${
+                              isBroker 
+                                ? 'bg-[#3159C1] text-white rounded-tr-none' 
+                                : 'bg-white text-slate-800 border border-slate-200/50 rounded-tl-none'
+                            }`}>
+                              <p className="leading-relaxed font-medium whitespace-pre-wrap">{msg.text}</p>
+                              <span className={`text-[9px] block text-right font-medium ${
+                                isBroker ? 'text-white/70' : 'text-slate-400'
+                              }`}>
+                                {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {chatMessages.length === 0 && (
+                        <div className="h-full flex flex-col items-center justify-center text-center py-20 space-y-2">
+                          <MessageSquare className="text-slate-300" size={32} />
+                          <p className="text-xs text-slate-400 font-medium">Nenhuma mensagem neste chat.</p>
+                          <p className="text-[10px] text-slate-400/80 max-w-[240px]">Envie uma mensagem abaixo para iniciar a conversa oficial com o cliente.</p>
+                        </div>
+                      )}
+
+                      <div ref={chatEndRef} />
+                    </div>
+
+                    {/* Input Send Area */}
+                    <form onSubmit={handleSendMessage} className="p-4 bg-white border-t border-slate-200/60 flex gap-3 items-center">
+                      <input
+                        type="text"
+                        placeholder="Digite uma mensagem para o cliente..."
+                        value={newMessageText}
+                        onChange={(e) => setNewMessageText(e.target.value)}
+                        disabled={isSendingMessage}
+                        className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200/80 rounded-xl text-slate-800 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#3159C1] focus:bg-white"
+                      />
+                      <button
+                        type="submit"
+                        disabled={isSendingMessage || !newMessageText.trim()}
+                        className="p-3 bg-[#3159C1] hover:bg-[#234294] disabled:bg-slate-100 disabled:text-slate-400 text-white rounded-xl transition-all active:scale-95"
+                      >
+                        {isSendingMessage ? (
+                          <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Send size={16} />
+                        )}
+                      </button>
+                    </form>
                   </>
                 ) : (
-                  <>
-                    <div className="bg-white p-4 rounded-3xl mb-6 shadow-xl relative group">
-                      <div className="absolute inset-0 bg-slate-900/10 flex items-center justify-center opacity-0 group-hover:opacity-100 rounded-3xl">
-                        <CheckCircle2 className="text-green-500 w-12 h-12 fill-white" />
-                      </div>
-                      <div className="w-[140px] h-[140px] bg-slate-900 flex flex-col justify-between p-2 rounded-xl">
-                        <div className="flex justify-between">
-                          <div className="w-8 h-8 border-4 border-white rounded" />
-                          <div className="w-8 h-8 border-4 border-white rounded" />
-                        </div>
-                        <div className="text-[10px] text-white font-bold tracking-widest uppercase">CONECTADO</div>
-                        <div className="flex justify-between items-end">
-                          <div className="w-8 h-8 border-4 border-white rounded" />
-                          <div className="w-8 h-8 bg-white rounded" />
-                        </div>
-                      </div>
+                  /* Empty state workspace */
+                  <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50">
+                    <div className="w-16 h-16 bg-[#3159C1]/5 border border-[#3159C1]/10 rounded-3xl flex items-center justify-center text-[#3159C1] mb-4 shadow-sm animate-pulse">
+                      <MessageSquare size={32} />
                     </div>
-                    <h3 className="text-lg font-black text-green-400 mb-2 flex items-center gap-1.5">
-                      <CheckCircle2 size={18} /> WhatsApp Sincronizado
-                    </h3>
-                    <p className="text-slate-500 text-xs max-w-[300px] mb-6">
-                      Sua linha `{brokerPhone}` está emparelhada com o CRM da Líder. Seus novos leads chegarão diretamente no seu WhatsApp pessoal.
+                    <h3 className="text-md font-bold text-slate-800">Atendimento WhatsApp CRM</h3>
+                    <p className="text-slate-500 text-xs max-w-[280px] mt-1 leading-relaxed">
+                      Selecione um cliente da sua lista de leads à esquerda para carregar o histórico de conversas e interagir.
                     </p>
-                    <button
-                      onClick={() => setIsWhatsAppActive(false)}
-                      className="px-4 py-2 bg-red-500/10 hover:bg-red-500 hover:text-white text-red-400 rounded-xl text-xs font-bold transition-all"
-                    >
-                      Desconectar
-                    </button>
-                  </>
+                    <div className="mt-6 p-4 bg-[#3159C1]/5 rounded-2xl border border-[#3159C1]/10 max-w-[320px] text-[10px] text-slate-500 leading-relaxed font-medium">
+                      🔒 **Filtro de Privacidade Ativo**: Apenas as conversas de clientes gerados na landing page ou criados manualmente no CRM constarão no painel. Nenhuma mensagem ou contato pessoal será importado.
+                    </div>
+                  </div>
                 )}
               </div>
+
             </div>
           )}
 

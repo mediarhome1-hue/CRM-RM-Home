@@ -34,6 +34,15 @@ export interface Lead {
   attendedAt?: string; // Marcado quando sai do status 'new' ou recebe nota
 }
 
+export interface Message {
+  id: string;
+  leadId: string;
+  sender: 'client' | 'broker';
+  text: string;
+  timestamp: string;
+  status?: string;
+}
+
 // Usuários iniciais padrão
 export const INITIAL_USERS: UserCRM[] = [
   {
@@ -201,6 +210,59 @@ const mapLeadFromDB = (row: any): Lead => ({
   lastActivityAt: row.last_activity_at,
   attendedAt: row.attended_at || undefined
 });
+
+export const mapMessageToDB = (m: Message) => ({
+  id: m.id,
+  lead_id: m.leadId,
+  sender: m.sender,
+  text: m.text,
+  timestamp: m.timestamp,
+  status: m.status || 'sent'
+});
+
+export const mapMessageFromDB = (row: any): Message => ({
+  id: row.id,
+  leadId: row.lead_id,
+  sender: row.sender as 'client' | 'broker',
+  text: row.text,
+  timestamp: row.timestamp,
+  status: row.status
+});
+
+export const getMessagesForLead = async (leadId: string): Promise<Message[]> => {
+  if (!isSupabaseConfigured) return [];
+  try {
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('lead_id', leadId)
+      .order('timestamp', { ascending: true });
+    
+    if (error) {
+      console.warn('Erro ao carregar mensagens do Supabase (tabela messages pode não existir ainda):', error.message);
+      return [];
+    }
+    return data ? data.map(mapMessageFromDB) : [];
+  } catch (e) {
+    console.error('Falha de rede ao buscar mensagens:', e);
+    return [];
+  }
+};
+
+export const saveMessageToSupabase = async (message: Message): Promise<boolean> => {
+  if (!isSupabaseConfigured) return false;
+  try {
+    const { error } = await supabase.from('messages').insert(mapMessageToDB(message));
+    if (error) {
+      console.error('Erro ao salvar mensagem no Supabase:', error.message);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error('Falha de rede ao salvar mensagem:', e);
+    return false;
+  }
+};
 
 // --- ENGENHARIA DE SINCRONIZAÇÃO EM SEGUNDO PLANO ---
 

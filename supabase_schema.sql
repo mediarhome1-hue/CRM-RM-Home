@@ -165,3 +165,33 @@ CREATE POLICY "Permitir tudo para usuarios_crm" ON users_crm FOR ALL USING (true
 
 DROP POLICY IF EXISTS "Permitir tudo para leads" ON leads;
 CREATE POLICY "Permitir tudo para leads" ON leads FOR ALL USING (true) WITH CHECK (true);
+
+-- 5. Tabela de Mensagens do Chat do WhatsApp
+CREATE TABLE IF NOT EXISTS messages (
+    id TEXT PRIMARY KEY,
+    lead_id TEXT NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+    sender TEXT NOT NULL CHECK (sender IN ('client', 'broker')),
+    text TEXT NOT NULL,
+    timestamp TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    status TEXT DEFAULT 'sent'
+);
+
+-- Desabilitar RLS para mensagens
+ALTER TABLE messages DISABLE ROW LEVEL SECURITY;
+
+-- Política de segurança pública para mensagens (caso RLS seja reativado)
+DROP POLICY IF EXISTS "Permitir tudo para mensagens" ON messages;
+CREATE POLICY "Permitir tudo para mensagens" ON messages FOR ALL USING (true) WITH CHECK (true);
+
+-- Habilitar Realtime para mensagens
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' 
+    AND schemaname = 'public' 
+    AND tablename = 'messages'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE messages;
+  END IF;
+END $$;
