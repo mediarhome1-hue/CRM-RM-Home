@@ -84,7 +84,12 @@ export default function Login() {
           localStorage.setItem('lider_active_broker_id', userToLogin.id);
           router.push('/dashboard');
         } else {
-          setError(`Senha incorreta! Use "${expectedPassword}" ou deixe em branco para testar.`);
+          const maskPassword = (pass: string): string => {
+            if (!pass) return '';
+            if (pass.length <= 2) return pass[0] + '*'.repeat(pass.length - 1);
+            return pass[0] + '*'.repeat(pass.length - 2) + pass[pass.length - 1];
+          };
+          setError(`Senha incorreta! Dica da sua senha: "${maskPassword(expectedPassword)}" (ou deixe em branco para testar).`);
           setIsLoading(false);
         }
       }
