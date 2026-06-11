@@ -1388,6 +1388,84 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
+
+              {/* Facebook Lead Ads API Integration Instructions */}
+              <div className="bg-white rounded-3xl p-8 border border-slate-200 space-y-6 mt-6">
+                <div>
+                  <span className="text-xs font-black tracking-widest text-[#3159C1] uppercase block mb-1">Integração com Meta Ads</span>
+                  <h3 className="text-2xl font-black text-slate-800">Conexão de Formulários Nativos (Meta Lead Ads)</h3>
+                  <p className="text-slate-500 text-sm mt-1">Siga as instruções abaixo para receber automaticamente os leads gerados pelos seus anúncios de cadastro do Facebook e Instagram diretamente no CRM.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-xs">
+                  {/* Meta configuration steps */}
+                  <div className="space-y-4">
+                    <span className="font-black text-[#3159C1] text-sm block">1. CONFIGURAÇÃO NA META (DEVELOPERS)</span>
+                    <ol className="space-y-3 text-slate-600 list-decimal pl-4 leading-relaxed font-medium">
+                      <li>No portal <a href="https://developers.facebook.com/" target="_blank" rel="noopener noreferrer" className="text-[#3159C1] underline font-bold">Meta for Developers</a>, use o mesmo aplicativo ou crie um novo aplicativo do tipo <strong>Business</strong>.</li>
+                      <li>Adicione o produto <strong>Webhooks</strong> ao aplicativo.</li>
+                      <li>No menu do Webhook, selecione <strong>Page</strong> (Página) no menu suspenso e clique em <strong>Configure this webhook</strong>.</li>
+                      <li>Cole os dados abaixo (Callback URL e Verify Token) e salve.</li>
+                      <li>Assine o tópico <strong>leadgen</strong> na tabela de campos para começar a receber as notificações.</li>
+                    </ol>
+
+                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2 mt-4">
+                      <span className="font-black text-slate-700 block uppercase text-[10px]">Dados para colar no Webhook da Página:</span>
+                      <div className="space-y-1">
+                        <label className="text-[10px] text-slate-500 block font-bold">Callback URL (Webhook)</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            readOnly
+                            value="https://liderimobiliariape.com.br/api/facebook/webhook"
+                            className="flex-1 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-[10px] font-mono text-slate-600 select-all focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText("https://liderimobiliariape.com.br/api/facebook/webhook");
+                              alert("URL do Webhook do Facebook copiada!");
+                            }}
+                            className="px-3 bg-[#3159C1] hover:bg-[#234294] text-white rounded-lg font-bold text-[10px]"
+                          >
+                            Copiar
+                          </button>
+                        </div>
+                      </div>
+                      <div className="space-y-1 pt-1">
+                        <label className="text-[10px] text-slate-500 block font-bold">Verify Token</label>
+                        <input
+                          type="text"
+                          readOnly
+                          value="crm_lider_facebook_token"
+                          className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-[10px] font-mono text-slate-600 select-all focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Vercel Env Vars */}
+                  <div className="space-y-4">
+                    <span className="font-black text-[#3159C1] text-sm block">2. VARIÁVEIS DE AMBIENTE NA VERCEL</span>
+                    <p className="text-slate-600 leading-relaxed font-medium">
+                      Para que o servidor do CRM consiga consultar os dados dos leads na Meta, configure as seguintes variáveis no painel da **Vercel** do seu projeto:
+                    </p>
+                    <div className="space-y-3 bg-slate-50 p-5 rounded-2xl border border-slate-100 font-medium">
+                      <div className="border-b border-slate-200/60 pb-2.5">
+                        <span className="font-mono text-[10px] font-black text-slate-800 bg-white border border-slate-200 px-1.5 py-0.5 rounded">FACEBOOK_PAGE_ACCESS_TOKEN</span>
+                        <p className="text-[10px] text-slate-500 mt-1">O Token de Acesso da Página (Page Access Token) gerado nas configurações da Meta para que o CRM consulte os detalhes dos leads.</p>
+                      </div>
+                      <div>
+                        <span className="font-mono text-[10px] font-black text-slate-800 bg-white border border-slate-200 px-1.5 py-0.5 rounded">FACEBOOK_VERIFY_TOKEN</span>
+                        <p className="text-[10px] text-slate-500 mt-1">Opcional. Se quiser usar outro token de verificação de webhook diferente de <code>crm_lider_facebook_token</code>.</p>
+                      </div>
+                    </div>
+                    <div className="bg-[#3159C1]/5 border border-[#3159C1]/20 text-slate-700 p-3.5 rounded-xl text-[10px] font-medium leading-relaxed font-semibold">
+                      💡 **Dica de Distribuição**: Os leads recebidos via Facebook Lead Ads entram no mesmo fluxo Round-Robin ativo. O corretor online da vez receberá o lead instantaneamente no seu painel!
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
