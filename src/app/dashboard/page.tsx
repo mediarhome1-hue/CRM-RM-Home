@@ -59,6 +59,8 @@ export default function Dashboard() {
   const [currentUser, setCurrentUser] = useState<UserCRM | null>(null);
   const [users, setUsers] = useState<UserCRM[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [isOnlineDropdownOpen, setIsOnlineDropdownOpen] = useState(false);
+  const onlineDropdownRef = useRef<HTMLDivElement>(null);
   
   // Navigation
   const [activeTab, setActiveTab] = useState<'kanban' | 'list' | 'whatsapp' | 'analytics' | 'users' | 'flow' | 'profile'>('kanban');
@@ -351,6 +353,19 @@ export default function Dashboard() {
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
+  // Fechar o menu de corretores online ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (onlineDropdownRef.current && !onlineDropdownRef.current.contains(event.target as Node)) {
+        setIsOnlineDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
 
@@ -986,15 +1001,55 @@ export default function Dashboard() {
           <div className="flex items-center gap-4">
             {/* Contador de Corretores Online (Gestores) */}
             {(currentUser.role === 'admin' || currentUser.role === 'manager') && (
-              <div className="flex items-center gap-2.5 bg-green-500/5 px-3 py-2 rounded-2xl border border-green-500/10 text-green-700">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                </span>
-                <span className="text-[10px] font-black tracking-wider uppercase flex items-center gap-1.5">
-                  {users.filter(u => u.role === 'broker' && u.status === 'online').length} 
-                  <span>{users.filter(u => u.role === 'broker' && u.status === 'online').length === 1 ? 'Corretor Online' : 'Corretores Online'}</span>
-                </span>
+              <div className="relative" ref={onlineDropdownRef}>
+                <button
+                  onClick={() => setIsOnlineDropdownOpen(!isOnlineDropdownOpen)}
+                  className="flex items-center gap-2.5 bg-green-500/5 hover:bg-green-500/10 px-3 py-2 rounded-2xl border border-green-500/10 text-green-700 transition-colors focus:outline-none select-none cursor-pointer"
+                >
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  </span>
+                  <span className="text-[10px] font-black tracking-wider uppercase flex items-center gap-1.5">
+                    {users.filter(u => u.role === 'broker' && u.status === 'online').length} 
+                    <span>{users.filter(u => u.role === 'broker' && u.status === 'online').length === 1 ? 'Corretor Online' : 'Corretores Online'}</span>
+                  </span>
+                </button>
+
+                <AnimatePresence>
+                  {isOnlineDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-4"
+                    >
+                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 pb-2 border-b border-slate-100 flex items-center justify-between">
+                        <span>Corretores Ativos</span>
+                        <span className="bg-green-500/10 text-green-600 px-2 py-0.5 rounded-full text-[9px] font-black">
+                          {users.filter(u => u.role === 'broker' && u.status === 'online').length}
+                        </span>
+                      </h4>
+                      <div className="space-y-2.5 max-h-48 overflow-y-auto">
+                        {users.filter(u => u.role === 'broker' && u.status === 'online').length > 0 ? (
+                          users.filter(u => u.role === 'broker' && u.status === 'online').map(b => (
+                            <div key={b.id} className="flex items-center gap-3">
+                              <img src={b.avatar} alt={b.name} className="w-8 h-8 rounded-full object-cover border border-green-500/25" />
+                              <div className="overflow-hidden">
+                                <p className="text-xs font-bold text-slate-800 truncate">{b.name}</p>
+                                <span className="text-[9px] text-green-500 font-black uppercase tracking-wider">● Online</span>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-center py-4 text-slate-400 text-xs font-semibold">
+                            Nenhum corretor online
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             )}
 
