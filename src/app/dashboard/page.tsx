@@ -984,6 +984,20 @@ export default function Dashboard() {
           </div>
 
           <div className="flex items-center gap-4">
+            {/* Contador de Corretores Online (Gestores) */}
+            {(currentUser.role === 'admin' || currentUser.role === 'manager') && (
+              <div className="flex items-center gap-2.5 bg-green-500/5 px-3 py-2 rounded-2xl border border-green-500/10 text-green-700">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </span>
+                <span className="text-[10px] font-black tracking-wider uppercase flex items-center gap-1.5">
+                  {users.filter(u => u.role === 'broker' && u.status === 'online').length} 
+                  <span>{users.filter(u => u.role === 'broker' && u.status === 'online').length === 1 ? 'Corretor Online' : 'Corretores Online'}</span>
+                </span>
+              </div>
+            )}
+
             {/* Corretor Online / Offline Toggle Switch */}
             {currentUser.role === 'broker' && (
               <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl border border-slate-200/60 text-slate-700 shadow-xs">
