@@ -8,6 +8,8 @@
 -- ALTER TABLE users_crm ADD COLUMN IF NOT EXISTS bio TEXT;
 -- ALTER TABLE users_crm ADD COLUMN IF NOT EXISTS birthdate DATE;
 -- ALTER TABLE users_crm ADD COLUMN IF NOT EXISTS email_notifications BOOLEAN DEFAULT TRUE;
+-- ALTER TABLE users_crm ADD COLUMN IF NOT EXISTS last_online_at TIMESTAMP WITH TIME ZONE;
+-- ALTER TABLE users_crm ADD COLUMN IF NOT EXISTS total_online_time INTEGER DEFAULT 0;
 
 -- 1. Tabela de Usuários do CRM
 CREATE TABLE IF NOT EXISTS users_crm (
@@ -25,6 +27,8 @@ CREATE TABLE IF NOT EXISTS users_crm (
     bio TEXT,
     birthdate DATE,
     email_notifications BOOLEAN NOT NULL DEFAULT TRUE,
+    last_online_at TIMESTAMP WITH TIME ZONE,
+    total_online_time INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 

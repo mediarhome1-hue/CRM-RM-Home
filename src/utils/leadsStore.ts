@@ -17,6 +17,8 @@ export interface UserCRM {
   bio?: string;
   birthdate?: string; // Data de nascimento (ISO date string YYYY-MM-DD)
   emailNotifications?: boolean; // Receber e-mail quando perfil for alterado
+  lastOnlineAt?: string;
+  totalOnlineTime?: number;
 }
 
 export interface Lead {
@@ -161,7 +163,9 @@ const mapUserToDB = (u: UserCRM) => ({
   creci: u.creci || null,
   bio: u.bio || null,
   birthdate: u.birthdate || null,
-  email_notifications: u.emailNotifications ?? true
+  email_notifications: u.emailNotifications ?? true,
+  last_online_at: u.lastOnlineAt || null,
+  total_online_time: u.totalOnlineTime || 0
 });
 
 const mapUserFromDB = (row: any): UserCRM => ({
@@ -178,7 +182,9 @@ const mapUserFromDB = (row: any): UserCRM => ({
   creci: row.creci || undefined,
   bio: row.bio || undefined,
   birthdate: row.birthdate || undefined,
-  emailNotifications: row.email_notifications ?? true
+  emailNotifications: row.email_notifications ?? true,
+  lastOnlineAt: row.last_online_at || undefined,
+  totalOnlineTime: row.total_online_time || 0
 });
 
 const mapLeadToDB = (l: Lead) => ({
@@ -401,12 +407,48 @@ export const toggleUserStatus = (userId: string): UserCRM | null => {
   const userIndex = users.findIndex(u => u.id === userId);
   if (userIndex === -1) return null;
 
-  const currentStatus = users[userIndex].status;
-  users[userIndex].status = currentStatus === 'online' ? 'offline' : 'online';
-  saveUsers(users);
+  const user = users[userIndex];
+  const newStatus = user.status === 'online' ? 'offline' : 'online';
+  user.status = newStatus;
 
-  pushUserToSupabase(users[userIndex]);
-  return users[userIndex];
+  const now = new Date().toISOString();
+  if (newStatus === 'online') {
+    user.lastOnlineAt = now;
+  } else {
+    if (user.lastOnlineAt) {
+      const elapsed = Math.floor((Date.now() - new Date(user.lastOnlineAt).getTime()) / 1000);
+      if (elapsed > 0) {
+        user.totalOnlineTime = (user.totalOnlineTime || 0) + elapsed;
+      }
+    }
+    user.lastOnlineAt = undefined;
+  }
+
+  saveUsers(users);
+  pushUserToSupabase(user);
+  return user;
+};
+
+export const logUserOffline = (userId: string): UserCRM | null => {
+  const users = getUsers();
+  const userIndex = users.findIndex(u => u.id === userId);
+  if (userIndex === -1) return null;
+
+  const user = users[userIndex];
+  if (user.status === 'offline') return user;
+
+  user.status = 'offline';
+  if (user.lastOnlineAt) {
+    const elapsed = Math.floor((Date.now() - new Date(user.lastOnlineAt).getTime()) / 1000);
+    if (elapsed > 0) {
+      user.totalOnlineTime = (user.totalOnlineTime || 0) + elapsed;
+    }
+  }
+  user.lastOnlineAt = undefined;
+
+  saveUsers(users);
+  pushUserToSupabase(user);
+  return user;
 };
 
 // --- GESTÃO DE LEADS ---

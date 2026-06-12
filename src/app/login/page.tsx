@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Lock, ArrowRight, UserCheck, Mail } from 'lucide-react';
-import { getUsers, UserCRM, INITIAL_USERS } from '../../utils/leadsStore';
+import { getUsers, UserCRM, INITIAL_USERS, updateUser } from '../../utils/leadsStore';
 
 export default function Login() {
   const router = useRouter();
@@ -81,6 +81,12 @@ export default function Login() {
         const isCorrectPassword = password === expectedPassword || password === '';
 
         if (isCorrectPassword) {
+          if (userToLogin.role === 'broker') {
+            const now = new Date().toISOString();
+            updateUser(userToLogin.id, { status: 'online', lastOnlineAt: now });
+          }
+          sessionStorage.setItem('session_active', 'true');
+          sessionStorage.removeItem('was_online_before_unload');
           localStorage.setItem('lider_active_broker_id', userToLogin.id);
           router.push('/dashboard');
         } else {
