@@ -13,13 +13,6 @@ const montserrat = Montserrat({
 export const metadata: Metadata = {
   title: "Líder Imobiliária - A Maior de Pernambuco",
   description: "A Maior de Pernambuco",
-  icons: {
-    icon: [
-      { url: "/icon.png" },
-      { url: "/icon.png", sizes: "32x32", type: "image/png" },
-    ],
-    apple: "/icon.png",
-  },
 };
 
 export default function RootLayout({
