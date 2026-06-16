@@ -78,7 +78,7 @@ export default function Login() {
       if (userToLogin) {
         const defaultPass = userToLogin.role === 'admin' ? 'admin' : '123';
         const expectedPassword = userToLogin.password || defaultPass;
-        const isCorrectPassword = password === expectedPassword || password === '';
+        const isCorrectPassword = password === expectedPassword;
 
         if (isCorrectPassword) {
           if (userToLogin.role === 'broker') {
@@ -95,7 +95,7 @@ export default function Login() {
             if (pass.length <= 2) return pass[0] + '*'.repeat(pass.length - 1);
             return pass[0] + '*'.repeat(pass.length - 2) + pass[pass.length - 1];
           };
-          setError(`Senha incorreta! Dica da sua senha: "${maskPassword(expectedPassword)}" (ou deixe em branco para testar).`);
+          setError(`Senha incorreta! Dica da sua senha: "${maskPassword(expectedPassword)}".`);
           setIsLoading(false);
         }
       }
