@@ -49,103 +49,20 @@ export interface Message {
 export const INITIAL_USERS: UserCRM[] = [
   {
     id: 'diretoria-lider',
-    name: 'Direção Líder',
-    avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150',
-    role: 'admin',
-    email: 'direcao@liderimobiliaria.com.br',
-    phone: '+55 81 99999-0000',
-    password: 'admin',
-    isWhatsAppConnected: false,
-    status: 'online',
-    creci: 'PE 56789-J',
-    bio: 'Direção geral da Líder Imobiliária. Compromisso permanente com a ética, liderança e excelência em negócios imobiliários.'
-  },
-  {
-    id: 'gerente-ricardo',
-    name: 'Ricardo Souza',
+    name: 'Joseph Nascimento',
     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
-    role: 'manager',
-    email: 'ricardo@liderimobiliaria.com.br',
-    phone: '+55 81 99999-5555',
-    password: '123',
-    isWhatsAppConnected: false,
-    status: 'online',
-    creci: 'PE 45678-F',
-    bio: 'Gerente comercial com mais de 10 anos de mercado. Líder nato focado no desenvolvimento de corretores de alta performance.'
-  },
-  {
-    id: 'ana-silva',
-    name: 'Ana Silva',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
-    role: 'broker',
-    email: 'ana@liderimobiliaria.com.br',
-    phone: '+55 81 99999-1111',
-    password: '123',
-    isWhatsAppConnected: false,
-    status: 'online',
-    managerId: 'gerente-ricardo',
-    creci: 'PE 12345-F',
-    bio: 'Especialista em lançamentos modernos e imóveis de alto padrão na Zona Sul de Recife. Paixão por realizar sonhos.'
-  },
-  {
-    id: 'bruno-santos',
-    name: 'Bruno Santos',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-    role: 'broker',
-    email: 'bruno@liderimobiliaria.com.br',
-    phone: '+55 81 99999-2222',
-    password: '123',
-    isWhatsAppConnected: false,
-    status: 'online',
-    managerId: 'gerente-ricardo',
-    creci: 'PE 23456-F',
-    bio: 'Foco exclusivo em condomínios fechados, chácaras de luxo e terrenos de médio e alto padrão. Atendimento personalizado.'
-  },
-  {
-    id: 'carlos-lima',
-    name: 'Carlos Lima',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
-    role: 'broker',
-    email: 'carlos@liderimobiliaria.com.br',
-    phone: '+55 81 99999-3333',
-    password: '123',
+    role: 'admin',
+    email: 'joseph3dinfo@gmail.com',
+    phone: '+55 81 91337935',
+    password: '81546223*#',
     isWhatsAppConnected: false,
     status: 'offline',
-    managerId: 'gerente-ricardo',
-    creci: 'PE 34567-F',
-    bio: 'Consultor de negócios imobiliários comerciais e residenciais na região central. Sólida experiência em negociação corporativa.'
+    birthdate: '1990-12-26',
+    emailNotifications: true
   }
 ];
 
-const DEFAULT_LEADS: Lead[] = [
-  {
-    id: 'lead-1',
-    name: 'Maria Eduarda Carvalho',
-    phone: '(81) 98888-7777',
-    email: 'maria.eduarda@email.com',
-    propertyName: 'Valle Encantado',
-    propertyBg: 'bg-[#317073]',
-    status: 'new',
-    createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-    assignedBrokerId: 'ana-silva',
-    notes: ['Demonstrou interesse pela varanda ampla.', 'Tem pressa na mudança.'],
-    lastActivityAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-  },
-  {
-    id: 'lead-2',
-    name: 'João Pedro Albuquerque',
-    phone: '(81) 99111-2222',
-    email: 'joao.pedro@email.com',
-    propertyName: 'Bela Vista',
-    propertyBg: 'bg-[#1b7a5e]',
-    status: 'contact',
-    createdAt: new Date(Date.now() - 3600000 * 12).toISOString(),
-    assignedBrokerId: 'ana-silva',
-    notes: ['Enviado apresentação do imóvel no WhatsApp.', 'Aguardando retorno sobre o valor da entrada.'],
-    lastActivityAt: new Date(Date.now() - 3600000 * 12).toISOString(),
-    attendedAt: new Date(Date.now() - 3600000 * 11.5).toISOString(),
-  }
-];
+const DEFAULT_LEADS: Lead[] = [];
 
 // --- AUXILIARES DE MAPEAMENTO (SNAKE_CASE PARA CAMELCASE) ---
 
@@ -350,7 +267,16 @@ export const getUsers = (): UserCRM[] => {
   const stored = localStorage.getItem('lider_crm_users');
   if (stored) {
     const parsed = JSON.parse(stored);
-    if (parsed && parsed.length > 0) return parsed;
+    if (parsed && parsed.length > 0) {
+      // Verifica e limpa se contiver os corretores fictícios antigos
+      const hasDummy = parsed.some((u: any) => u.id === 'ana-silva' || u.id === 'gerente-ricardo');
+      if (!hasDummy) {
+        return parsed;
+      }
+      console.log('Detectado cache antigo com corretores fictícios. Limpando localStorage...');
+      localStorage.removeItem('lider_crm_users');
+      localStorage.removeItem('lider_leads');
+    }
   }
   localStorage.setItem('lider_crm_users', JSON.stringify(INITIAL_USERS));
   

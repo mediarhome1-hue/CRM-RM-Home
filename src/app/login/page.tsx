@@ -64,7 +64,7 @@ export default function Login() {
       }
 
       if (!targetUser) {
-        setError('E-mail não encontrado no CRM. Tente usar "direcao@liderimobiliaria.com.br".');
+        setError('E-mail não encontrado no CRM. Tente usar "joseph3dinfo@gmail.com".');
         return;
       }
     }
@@ -181,7 +181,7 @@ export default function Login() {
               <div className="relative">
                 <input
                   type="email"
-                  placeholder="direcao@liderimobiliaria.com.br"
+                  placeholder="joseph3dinfo@gmail.com"
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
