@@ -181,7 +181,7 @@ export default function Login() {
               <div className="relative">
                 <input
                   type="email"
-                  placeholder="joseph3dinfo@gmail.com"
+                  placeholder="E-mail"
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
