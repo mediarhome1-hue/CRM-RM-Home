@@ -46,7 +46,7 @@ const getBaseHtml = (title: string, content: string) => `
 <body>
   <div class="container">
     <div class="header">
-      <h1>LÍDER IMOBILIÁRIA</h1>
+      <img src="https://www.liderimobiliariape.com.br/logotipo-lider-branco.png" alt="Líder Imobiliária" style="height: 50px; width: auto; max-width: 100%; display: block; margin: 0 auto;" />
     </div>
     <div class="content">
       ${content}
@@ -81,7 +81,7 @@ export const sendProfileUpdateEmail = async (user: UserCRM, updatedFields: strin
     <p>Se foi você quem fez essa alteração, nenhuma ação é necessária. Caso não reconheça essa atividade, entre em contato imediatamente com a direção geral do CRM Líder para proteger seu acesso.</p>
     <br>
     <div style="text-align: center;">
-      <a href="https://medialiderimobiliaria-crm.vercel.app/login" class="button">Acessar CRM</a>
+      <a href="https://www.liderimobiliariape.com.br/login" class="button">Acessar CRM</a>
     </div>
     `
   );
@@ -112,7 +112,7 @@ export const sendPasswordResetEmail = async (user: UserCRM, newPassword: string)
     <p style="color: #e11d48; font-weight: bold; font-size: 13px;">Recomendação de segurança: Entre no sistema utilizando as credenciais acima e redefina sua senha para uma de sua preferência na aba "Minha Conta".</p>
     <br>
     <div style="text-align: center;">
-      <a href="https://medialiderimobiliaria-crm.vercel.app/login" class="button">Logar no CRM</a>
+      <a href="https://www.liderimobiliariape.com.br/login" class="button">Logar no CRM</a>
     </div>
     `
   );
