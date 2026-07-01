@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Lock, ArrowRight, UserCheck, Mail } from 'lucide-react';
-import { getUsers, UserCRM, INITIAL_USERS, updateUser } from '../../utils/leadsStore';
+import { getUsers, UserCRM, INITIAL_USERS, updateUser, getSupabaseStatus, SupabaseStatus } from '../../utils/leadsStore';
 
 export default function Login() {
   const router = useRouter();
   const [users, setUsers] = useState<UserCRM[]>([]);
+  const [supabaseStatus, setSupabaseStatus] = useState<SupabaseStatus | null>(null);
   const [loginMode, setLoginMode] = useState<'email' | 'select'>('email'); // Default to email typing
   const [selectedUserId, setSelectedUserId] = useState('');
   const [email, setEmail] = useState('');
@@ -21,11 +22,13 @@ export default function Login() {
     // Carregar usuários locais com fallback garantido aos padrões
     const localUsers = getUsers();
     setUsers(localUsers.length > 0 ? localUsers : INITIAL_USERS);
+    setSupabaseStatus(getSupabaseStatus());
 
     const syncCloudUsers = async () => {
       try {
         const { syncWithSupabase } = await import('../../utils/leadsStore');
         const success = await syncWithSupabase();
+        setSupabaseStatus(getSupabaseStatus());
         if (success) {
           const updated = getUsers();
           if (updated && updated.length > 0) {
@@ -64,7 +67,11 @@ export default function Login() {
       }
 
       if (!targetUser) {
-        setError('E-mail não encontrado no CRM. Tente usar "joseph3dinfo@gmail.com".');
+        if (supabaseStatus?.isRestricted) {
+          setError('E-mail não encontrado. O banco de dados na nuvem está suspenso por cota excedida, impedindo o carregamento dos corretores. Tente usar "joseph3dinfo@gmail.com" (conta local principal).');
+        } else {
+          setError('E-mail não encontrado no CRM. Tente usar "joseph3dinfo@gmail.com".');
+        }
         return;
       }
     }
@@ -138,6 +145,27 @@ export default function Login() {
           <h2 className="text-2xl font-black text-slate-800 leading-tight">Acesso ao Sistema</h2>
           <p className="text-slate-500 text-sm mt-1 font-medium">Insira suas credenciais para entrar no ambiente</p>
         </div>
+
+        {/* Banner de erro de cota do Supabase */}
+        {supabaseStatus?.isRestricted && (
+          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex flex-col gap-1.5 text-xs text-amber-800">
+            <span className="font-bold flex items-center gap-1 text-sm text-amber-900">
+              ⚠️ Banco de Dados na Nuvem Suspenso
+            </span>
+            <p className="leading-relaxed">
+              O limite de tráfego (cota) do banco de dados na nuvem foi excedido. 
+              Por este motivo, perfis adicionais criados recentemente da equipe podem não aparecer para login.
+            </p>
+            <p className="font-medium text-amber-900 mt-1">
+              Para o administrador reativar o banco:
+            </p>
+            <ol className="list-decimal pl-4 space-y-1">
+              <li>Acesse o console do Supabase.</li>
+              <li>Entre nas configurações de faturamento (Billing/Subscription).</li>
+              <li>Faça o upgrade do plano ou remova o limite de gastos (Spend Cap).</li>
+            </ol>
+          </div>
+        )}
 
         {/* Form */}
         <form onSubmit={handleLogin} className="space-y-5">

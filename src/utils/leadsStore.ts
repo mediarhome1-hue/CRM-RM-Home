@@ -21,6 +21,44 @@ export interface UserCRM {
   totalOnlineTime?: number;
 }
 
+export interface SupabaseStatus {
+  isConfigured: boolean;
+  isRestricted: boolean;
+  errorMessage?: string;
+  lastChecked?: string;
+}
+
+let currentSupabaseStatus: SupabaseStatus = {
+  isConfigured: isSupabaseConfigured,
+  isRestricted: false
+};
+
+export const getSupabaseStatus = (): SupabaseStatus => {
+  if (typeof window === 'undefined') return currentSupabaseStatus;
+  const stored = localStorage.getItem('lider_supabase_status');
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return currentSupabaseStatus;
+    }
+  }
+  return currentSupabaseStatus;
+};
+
+export const setSupabaseStatus = (status: Partial<SupabaseStatus>) => {
+  currentSupabaseStatus = { 
+    ...currentSupabaseStatus, 
+    ...status, 
+    isConfigured: isSupabaseConfigured,
+    lastChecked: new Date().toISOString() 
+  };
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('lider_supabase_status', JSON.stringify(currentSupabaseStatus));
+  }
+};
+
+
 export interface Lead {
   id: string;
   name: string;
@@ -199,6 +237,11 @@ export const syncWithSupabase = async (): Promise<boolean> => {
     if (usersErr) {
       console.error('Erro ao sincronizar usuários do Supabase:', usersErr.message, usersErr.details);
       success = false;
+      const isQuota = usersErr.message?.includes('exceed_egress_quota') || String(usersErr.code) === '402';
+      setSupabaseStatus({
+        isRestricted: isQuota,
+        errorMessage: usersErr.message
+      });
     } else if (usersData) {
       if (usersData.length === 0) {
         // Banco está vazio! Vamos semear (seed) os INITIAL_USERS automaticamente na nuvem!
@@ -206,12 +249,19 @@ export const syncWithSupabase = async (): Promise<boolean> => {
         if (seedErr) {
           console.error('Erro ao semear usuários iniciais no Supabase:', seedErr.message);
           success = false;
+          const isQuota = seedErr.message?.includes('exceed_egress_quota') || String(seedErr.code) === '402';
+          setSupabaseStatus({
+            isRestricted: isQuota,
+            errorMessage: seedErr.message
+          });
         } else {
           localStorage.setItem('lider_crm_users', JSON.stringify(INITIAL_USERS));
+          setSupabaseStatus({ isRestricted: false, errorMessage: undefined });
         }
       } else {
         const mappedUsers = usersData.map(mapUserFromDB);
         localStorage.setItem('lider_crm_users', JSON.stringify(mappedUsers));
+        setSupabaseStatus({ isRestricted: false, errorMessage: undefined });
       }
     }
 
@@ -220,14 +270,27 @@ export const syncWithSupabase = async (): Promise<boolean> => {
     if (leadsErr) {
       console.error('Erro ao sincronizar leads do Supabase:', leadsErr.message, leadsErr.details);
       success = false;
+      const isQuota = leadsErr.message?.includes('exceed_egress_quota') || String(leadsErr.code) === '402';
+      setSupabaseStatus({
+        isRestricted: isQuota,
+        errorMessage: leadsErr.message
+      });
     } else if (leadsData) {
       const mappedLeads = leadsData.map(mapLeadFromDB);
       localStorage.setItem('lider_leads', JSON.stringify(mappedLeads));
+      if (success) {
+        setSupabaseStatus({ isRestricted: false, errorMessage: undefined });
+      }
     }
     
     return success;
-  } catch (e) {
+  } catch (e: any) {
     console.error('Falha crítica ao sincronizar com Supabase:', e);
+    const isQuota = e?.message?.includes('exceed_egress_quota') || e?.status === 402 || String(e?.code) === '402';
+    setSupabaseStatus({
+      isRestricted: isQuota,
+      errorMessage: e?.message || 'Falha crítica de conexão com o banco de dados'
+    });
     return false;
   }
 };
@@ -238,11 +301,22 @@ const pushUserToSupabase = async (user: UserCRM) => {
     const { error } = await supabase.from('users_crm').upsert(mapUserToDB(user));
     if (error) {
       console.error('Erro ao enviar usuário para o Supabase:', error.message, error.details, error.hint);
+      const isQuota = error.message?.includes('exceed_egress_quota') || String(error.code) === '402';
+      setSupabaseStatus({
+        isRestricted: isQuota,
+        errorMessage: error.message
+      });
     } else {
       console.log('Usuário sincronizado com o Supabase:', user.name);
+      setSupabaseStatus({ isRestricted: false, errorMessage: undefined });
     }
-  } catch (e) {
+  } catch (e: any) {
     console.error('Falha de rede/conexão ao enviar usuário:', e);
+    const isQuota = e?.message?.includes('exceed_egress_quota') || e?.status === 402 || String(e?.code) === '402';
+    setSupabaseStatus({
+      isRestricted: isQuota,
+      errorMessage: e?.message || 'Falha de rede/conexão com o banco de dados'
+    });
   }
 };
 
@@ -252,11 +326,22 @@ const pushLeadToSupabase = async (lead: Lead) => {
     const { error } = await supabase.from('leads').upsert(mapLeadToDB(lead));
     if (error) {
       console.error('Erro ao enviar lead para o Supabase:', error.message, error.details, error.hint);
+      const isQuota = error.message?.includes('exceed_egress_quota') || String(error.code) === '402';
+      setSupabaseStatus({
+        isRestricted: isQuota,
+        errorMessage: error.message
+      });
     } else {
       console.log('Lead sincronizado com o Supabase:', lead.name);
+      setSupabaseStatus({ isRestricted: false, errorMessage: undefined });
     }
-  } catch (e) {
+  } catch (e: any) {
     console.error('Falha de rede/conexão ao enviar lead:', e);
+    const isQuota = e?.message?.includes('exceed_egress_quota') || e?.status === 402 || String(e?.code) === '402';
+    setSupabaseStatus({
+      isRestricted: isQuota,
+      errorMessage: e?.message || 'Falha de rede/conexão com o banco de dados'
+    });
   }
 };
 
