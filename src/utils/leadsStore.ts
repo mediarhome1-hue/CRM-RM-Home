@@ -377,16 +377,24 @@ export const getUsers = (): UserCRM[] => {
   if (typeof window === 'undefined') return INITIAL_USERS;
   const stored = localStorage.getItem('lider_crm_users');
   if (stored) {
-    const parsed = JSON.parse(stored);
-    if (parsed && parsed.length > 0) {
-      // Verifica e limpa se contiver os corretores fictícios antigos
-      const hasDummy = parsed.some((u: any) => u.id === 'ana-silva' || u.id === 'gerente-ricardo');
-      if (!hasDummy) {
-        return parsed;
+    try {
+      const parsed = JSON.parse(stored);
+      if (parsed && Array.isArray(parsed) && parsed.length > 0) {
+        // IDs válidos permitidos (Oficiais + novos criados com id user-*)
+        const validOfficialIds = ['diretoria-lider', 'daiany-martins', 'matheus-souto'];
+        const hasLegacy = parsed.some((u: any) => 
+          !validOfficialIds.includes(u.id) && !u.id.startsWith('user-')
+        );
+
+        if (!hasLegacy) {
+          return parsed;
+        }
+        console.log('Detectado cache antigo com corretores obsoletos. Invalidate & Reset automático...');
+        localStorage.removeItem('lider_crm_users');
+        localStorage.removeItem('lider_leads');
       }
-      console.log('Detectado cache antigo com corretores fictícios. Limpando localStorage...');
+    } catch {
       localStorage.removeItem('lider_crm_users');
-      localStorage.removeItem('lider_leads');
     }
   }
   localStorage.setItem('lider_crm_users', JSON.stringify(INITIAL_USERS));
