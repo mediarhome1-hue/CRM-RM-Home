@@ -80,12 +80,12 @@ INSERT INTO users_crm (id, name, avatar, role, email, phone, password, is_whatsa
 VALUES
   (
     'diretoria-lider', 
-    'Direção Líder', 
-    'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150', 
+    'Joseph Nascimento', 
+    'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150', 
     'admin', 
-    'direcao@liderimobiliaria.com.br', 
-    '+55 81 99999-0000', 
-    'admin', 
+    'joseph3dinfo@gmail.com', 
+    '+55 81 91337935', 
+    '81546223*#', 
     false, 
     'online', 
     NULL,
@@ -97,64 +97,32 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO users_crm (id, name, avatar, role, email, phone, password, is_whatsapp_connected, status, manager_id, creci, bio)
 VALUES
   (
-    'gerente-ricardo', 
-    'Ricardo Souza', 
-    'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150', 
-    'manager', 
-    'ricardo@liderimobiliaria.com.br', 
-    '+55 81 99999-5555', 
-    '123', 
-    false, 
-    'online', 
-    NULL,
-    'PE 45678-F',
-    'Gerente comercial com mais de 10 anos de mercado. Líder nato focado no desenvolvimento de corretores de alta performance.'
-  )
-ON CONFLICT (id) DO NOTHING;
-
-INSERT INTO users_crm (id, name, avatar, role, email, phone, password, is_whatsapp_connected, status, manager_id, creci, bio)
-VALUES
-  (
-    'ana-silva', 
-    'Ana Silva', 
-    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', 
+    'daiany-martins', 
+    'Daiany Martins', 
+    '/corretor-daiany.jpg', 
     'broker', 
-    'ana@liderimobiliaria.com.br', 
-    '+55 81 99999-1111', 
-    '123', 
+    'daiany@liderimobiliaria.com.br', 
+    '+55 81 98184-4018', 
+    '123456', 
     false, 
     'online', 
-    'gerente-ricardo',
-    'PE 12345-F',
-    'Especialista em lançamentos modernos e imóveis de alto padrão na Zona Sul de Recife. Paixão por realizar sonhos.'
+    'diretoria-lider',
+    'CRECI 21245',
+    'Corretora de imóveis com foco em atendimento humanizado e melhores oportunidades.'
   ),
   (
-    'bruno-santos', 
-    'Bruno Santos', 
-    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', 
+    'matheus-souto', 
+    'Matheus Souto', 
+    '/corretor-matheus-souto.jpg', 
     'broker', 
-    'bruno@liderimobiliaria.com.br', 
-    '+55 81 99999-2222', 
-    '123', 
+    'matheus@liderimobiliaria.com.br', 
+    '+55 81 98864-3830', 
+    '123456', 
     false, 
     'online', 
-    'gerente-ricardo',
-    'PE 23456-F',
-    'Foco exclusivo em condomínios fechados, chácaras de luxo e terrenos de médio e alto padrão. Atendimento personalizado.'
-  ),
-  (
-    'carlos-lima', 
-    'Carlos Lima', 
-    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', 
-    'broker', 
-    'carlos@liderimobiliaria.com.br', 
-    '+55 81 99999-3333', 
-    '123', 
-    false, 
-    'offline', 
-    'gerente-ricardo',
-    'PE 34567-F',
-    'Consultor de negócios imobiliários comerciais e residenciais na região central. Sólida experiência em negociação corporativa.'
+    'diretoria-lider',
+    'CRECI 21612',
+    'Corretor de imóveis especializado em negócios de alto valor e investimentos.'
   )
 ON CONFLICT (id) DO NOTHING;
 
