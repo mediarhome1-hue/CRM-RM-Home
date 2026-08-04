@@ -167,22 +167,14 @@ export default function Dashboard() {
 
     // Gerenciamento de status online automático (corretores)
     if (user.role === 'broker') {
-      const wasOnlineBeforeUnload = sessionStorage.getItem('was_online_before_unload') === 'true';
-      const isSessionActive = sessionStorage.getItem('session_active') === 'true';
-
-      if (wasOnlineBeforeUnload) {
+      const manualOffline = localStorage.getItem(`broker_manual_offline_${user.id}`) === 'true';
+      if (!manualOffline) {
         const now = new Date().toISOString();
         const updatedUsers = updateUser(user.id, { status: 'online', lastOnlineAt: now });
         user = updatedUsers.find(u => u.id === userId) || user;
         currentUsers = updatedUsers;
-        sessionStorage.removeItem('was_online_before_unload');
-      } else if (!isSessionActive) {
-        const now = new Date().toISOString();
-        const updatedUsers = updateUser(user.id, { status: 'online', lastOnlineAt: now });
-        user = updatedUsers.find(u => u.id === userId) || user;
-        currentUsers = updatedUsers;
-        sessionStorage.setItem('session_active', 'true');
       }
+      sessionStorage.setItem('session_active', 'true');
     } else {
       sessionStorage.setItem('session_active', 'true');
     }
@@ -444,6 +436,7 @@ export default function Dashboard() {
   const handleLogout = () => {
     if (currentUser && currentUser.role === 'broker') {
       logUserOffline(currentUser.id);
+      localStorage.removeItem(`broker_manual_offline_${currentUser.id}`);
     }
     sessionStorage.removeItem('session_active');
     sessionStorage.removeItem('was_online_before_unload');
@@ -455,6 +448,11 @@ export default function Dashboard() {
     if (!currentUser) return;
     const updated = toggleUserStatus(currentUser.id);
     if (updated) {
+      if (updated.status === 'offline') {
+        localStorage.setItem(`broker_manual_offline_${currentUser.id}`, 'true');
+      } else {
+        localStorage.removeItem(`broker_manual_offline_${currentUser.id}`);
+      }
       setCurrentUser(updated);
       setUsers(getUsers());
     }
