@@ -94,8 +94,34 @@ export const INITIAL_USERS: UserCRM[] = [
     phone: '+55 81 91337935',
     password: '81546223*#',
     isWhatsAppConnected: false,
-    status: 'offline',
+    status: 'online',
     birthdate: '1990-12-26',
+    emailNotifications: true
+  },
+  {
+    id: 'daiany-martins',
+    name: 'Daiany Martins',
+    avatar: '/corretor-daiany.jpg',
+    role: 'broker',
+    email: 'daiany@liderimobiliaria.com.br',
+    phone: '+55 81 98184-4018',
+    password: '123',
+    isWhatsAppConnected: false,
+    status: 'online',
+    creci: 'CRECI 21245',
+    emailNotifications: true
+  },
+  {
+    id: 'matheus-souto',
+    name: 'Matheus Souto',
+    avatar: '/corretor-matheus-souto.jpg',
+    role: 'broker',
+    email: 'matheus@liderimobiliaria.com.br',
+    phone: '+55 81 98864-3830',
+    password: '123',
+    isWhatsAppConnected: false,
+    status: 'online',
+    creci: 'CRECI 21612',
     emailNotifications: true
   }
 ];
