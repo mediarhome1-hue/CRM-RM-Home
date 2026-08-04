@@ -107,7 +107,7 @@ export const INITIAL_USERS: UserCRM[] = [
     phone: '+55 81 98184-4018',
     password: '123',
     isWhatsAppConnected: false,
-    status: 'online',
+    status: 'offline',
     creci: 'CRECI 21245',
     emailNotifications: true
   },
@@ -120,7 +120,7 @@ export const INITIAL_USERS: UserCRM[] = [
     phone: '+55 81 98864-3830',
     password: '123',
     isWhatsAppConnected: false,
-    status: 'online',
+    status: 'offline',
     creci: 'CRECI 21612',
     emailNotifications: true
   }
