@@ -123,6 +123,20 @@ VALUES
     'diretoria-lider',
     'CRECI 21612',
     'Corretor de imóveis especializado em negócios de alto valor e investimentos.'
+  ),
+  (
+    'samira-martins', 
+    'Samira Martins', 
+    '/corretor-samira-martins.jpg', 
+    'broker', 
+    'samira@liderimobiliaria.com.br', 
+    '+55 81 97322-5711', 
+    '123456', 
+    false, 
+    'online', 
+    'diretoria-lider',
+    'CRECI 23592',
+    'Corretora de imóveis com atendimento exclusivo e consultoria imobiliária.'
   )
 ON CONFLICT (id) DO NOTHING;
 

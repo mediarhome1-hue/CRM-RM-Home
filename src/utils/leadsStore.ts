@@ -125,6 +125,19 @@ export const INITIAL_USERS: UserCRM[] = [
     status: 'offline',
     creci: 'CRECI 21612',
     emailNotifications: true
+  },
+  {
+    id: 'samira-martins',
+    name: 'Samira Martins',
+    avatar: '/corretor-samira-martins.jpg',
+    role: 'broker',
+    email: 'samira@liderimobiliaria.com.br',
+    phone: '+55 81 97322-5711',
+    password: '123',
+    isWhatsAppConnected: false,
+    status: 'offline',
+    creci: 'CRECI 23592',
+    emailNotifications: true
   }
 ];
 
@@ -289,7 +302,7 @@ export const syncWithSupabase = async (): Promise<boolean> => {
       } else {
         const mappedUsers = usersData.map(mapUserFromDB);
         // Filtrar e remover usuários antigos/legados que possam estar na tabela do Supabase
-        const validOfficialIds = ['diretoria-lider', 'daiany-martins', 'matheus-souto'];
+        const validOfficialIds = ['diretoria-lider', 'daiany-martins', 'matheus-souto', 'samira-martins'];
         const cleanUsers = mappedUsers.filter(u => validOfficialIds.includes(u.id) || u.id.startsWith('user-'));
         localStorage.setItem('lider_crm_users', JSON.stringify(cleanUsers));
         setSupabaseStatus({ isRestricted: false, errorMessage: undefined });
@@ -396,7 +409,7 @@ export const getUsers = (): UserCRM[] => {
       const parsed = JSON.parse(stored);
       if (parsed && Array.isArray(parsed) && parsed.length > 0) {
         // IDs válidos permitidos (Oficiais + novos criados com id user-*)
-        const validOfficialIds = ['diretoria-lider', 'daiany-martins', 'matheus-souto'];
+        const validOfficialIds = ['diretoria-lider', 'daiany-martins', 'matheus-souto', 'samira-martins'];
         const hasLegacy = parsed.some((u: any) => 
           !validOfficialIds.includes(u.id) && !u.id.startsWith('user-')
         );
