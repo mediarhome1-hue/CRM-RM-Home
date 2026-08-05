@@ -288,7 +288,10 @@ export const syncWithSupabase = async (): Promise<boolean> => {
         }
       } else {
         const mappedUsers = usersData.map(mapUserFromDB);
-        localStorage.setItem('lider_crm_users', JSON.stringify(mappedUsers));
+        // Filtrar e remover usuários antigos/legados que possam estar na tabela do Supabase
+        const validOfficialIds = ['diretoria-lider', 'daiany-martins', 'matheus-souto'];
+        const cleanUsers = mappedUsers.filter(u => validOfficialIds.includes(u.id) || u.id.startsWith('user-'));
+        localStorage.setItem('lider_crm_users', JSON.stringify(cleanUsers));
         setSupabaseStatus({ isRestricted: false, errorMessage: undefined });
       }
     }
@@ -399,7 +402,7 @@ export const getUsers = (): UserCRM[] => {
         );
 
         if (!hasLegacy) {
-          return parsed;
+          return parsed.filter((u: any) => validOfficialIds.includes(u.id) || u.id.startsWith('user-'));
         }
         console.log('Detectado cache antigo com corretores obsoletos. Invalidate & Reset automático...');
         localStorage.removeItem('lider_crm_users');
