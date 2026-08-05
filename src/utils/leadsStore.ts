@@ -28,6 +28,8 @@ export interface SupabaseStatus {
   lastChecked?: string;
 }
 
+const CRM_CACHE_VERSION = 'v1.0.3';
+
 let currentSupabaseStatus: SupabaseStatus = {
   isConfigured: isSupabaseConfigured,
   isRestricted: false
@@ -375,6 +377,16 @@ const pushLeadToSupabase = async (lead: Lead) => {
 
 export const getUsers = (): UserCRM[] => {
   if (typeof window === 'undefined') return INITIAL_USERS;
+
+  // Invalidação automática por versão de deploy/cache
+  const storedVersion = localStorage.getItem('lider_crm_cache_version');
+  if (storedVersion !== CRM_CACHE_VERSION) {
+    console.log(`Versão de cache desatualizada (${storedVersion} -> ${CRM_CACHE_VERSION}). Invalidação total de cache...`);
+    localStorage.removeItem('lider_crm_users');
+    localStorage.removeItem('lider_leads');
+    localStorage.setItem('lider_crm_cache_version', CRM_CACHE_VERSION);
+  }
+
   const stored = localStorage.getItem('lider_crm_users');
   if (stored) {
     try {
@@ -397,6 +409,7 @@ export const getUsers = (): UserCRM[] => {
       localStorage.removeItem('lider_crm_users');
     }
   }
+  localStorage.setItem('lider_crm_cache_version', CRM_CACHE_VERSION);
   localStorage.setItem('lider_crm_users', JSON.stringify(INITIAL_USERS));
   
   // Se Supabase estiver ativo, dispara fetch em segundo plano para futuras renderizações
