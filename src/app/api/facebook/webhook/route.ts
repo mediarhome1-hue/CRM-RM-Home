@@ -46,10 +46,10 @@ export async function POST(req: Request) {
     const formId = value.form_id;
 
     // Token da página para consulta na API do Graph da Meta
-    const pageAccessToken = process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
+    const pageAccessToken = process.env.FACEBOOK_PAGE_ACCESS_TOKEN || process.env.FACEBOOK_ACCESS_TOKEN;
 
     if (!pageAccessToken) {
-      console.error('[Facebook Webhook] FACEBOOK_PAGE_ACCESS_TOKEN não configurado.');
+      console.error('[Facebook Webhook] FACEBOOK_ACCESS_TOKEN / FACEBOOK_PAGE_ACCESS_TOKEN não configurado.');
       return NextResponse.json({ error: 'Token de acesso da página não configurado.' }, { status: 500 });
     }
 
