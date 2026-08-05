@@ -5,9 +5,10 @@ import { motion } from 'framer-motion';
 import Image from 'next/image';
 
 const corretores = [
-  { id: 1,  nome: 'Daiany',   sobrenome: 'Martins', creci: 'CRECI 21245', foto: '/corretor-daiany.jpg',            instagram: 'https://www.instagram.com/daiany_corretora?igsh=MWVpNzl1Zm9jc2c3MA==',       whatsapp: 'https://wa.me/5581981844018' },
-  { id: 2,  nome: 'Matheus',  sobrenome: 'Souto',   creci: 'CRECI 21612', foto: '/corretor-matheus-souto.jpg',    instagram: 'https://www.instagram.com/matheussouto.ci?igsh=MTlvMnlpc3JyeDFsbQ==',       whatsapp: 'https://wa.me/5581988643830?text=Ol%C3%A1%20Matheus%2C%20vim%20atrav%C3%A9s%20do%20site%20da%20L%C3%ADder%20Imobili%C3%A1ria...' },
-  { id: 3,  nome: 'Samira',   sobrenome: 'Martins', creci: 'CRECI 23592', foto: '/corretor-samira-martins.jpg',   instagram: 'https://www.instagram.com/samira.martins.corretora/',                       whatsapp: 'https://wa.me/5581973225711?text=Ol%C3%A1%20Samira%20vim%20atrav%C3%A9s%20do%20site%20da%20L%C3%ADder%20Imobili%C3%A1ria%2C%20gostaria%20de%20saber%20mais%20sobre%20im%C3%B3veis...' },
+  { id: 1,  nome: 'Daiany',   sobrenome: 'Martins',  creci: 'CRECI 21245', foto: '/corretor-daiany.jpg',            instagram: 'https://www.instagram.com/daiany_corretora?igsh=MWVpNzl1Zm9jc2c3MA==',       whatsapp: 'https://wa.me/5581981844018' },
+  { id: 2,  nome: 'Izabel',   sobrenome: 'Cristina', creci: 'CRECI 22925', foto: '/corretor-izabel-cristina.jpg',   instagram: 'https://www.instagram.com/izabelcristina__corretora/',                     whatsapp: 'https://wa.me/5581986116336?text=Ol%C3%A1%20Izabel%2C%20vim%20atrav%C3%A9s%20do%20site%20da%20L%C3%ADder%20Imobili%C3%A1ria%2C%20gostaria%20de%20saber%20mais%20sobre%20im%C3%B3veis...' },
+  { id: 3,  nome: 'Matheus',  sobrenome: 'Souto',    creci: 'CRECI 21612', foto: '/corretor-matheus-souto.jpg',    instagram: 'https://www.instagram.com/matheussouto.ci?igsh=MTlvMnlpc3JyeDFsbQ==',       whatsapp: 'https://wa.me/5581988643830?text=Ol%C3%A1%20Matheus%2C%20vim%20atrav%C3%A9s%20do%20site%20da%20L%C3%ADder%20Imobili%C3%A1ria...' },
+  { id: 4,  nome: 'Samira',   sobrenome: 'Martins',  creci: 'CRECI 23592', foto: '/corretor-samira-martins.jpg',   instagram: 'https://www.instagram.com/samira.martins.corretora/',                       whatsapp: 'https://wa.me/5581973225711?text=Ol%C3%A1%20Samira%20vim%20atrav%C3%A9s%20do%20site%20da%20L%C3%ADder%20Imobili%C3%A1ria%2C%20gostaria%20de%20saber%20mais%20sobre%20im%C3%B3veis...' },
 ];
 
 /* ───── Ícone Instagram ───── */

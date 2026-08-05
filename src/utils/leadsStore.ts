@@ -28,7 +28,7 @@ export interface SupabaseStatus {
   lastChecked?: string;
 }
 
-const CRM_CACHE_VERSION = 'v1.0.3';
+const CRM_CACHE_VERSION = 'v1.0.4';
 
 let currentSupabaseStatus: SupabaseStatus = {
   isConfigured: isSupabaseConfigured,
@@ -111,6 +111,19 @@ export const INITIAL_USERS: UserCRM[] = [
     isWhatsAppConnected: false,
     status: 'offline',
     creci: 'CRECI 21245',
+    emailNotifications: true
+  },
+  {
+    id: 'izabel-cristina',
+    name: 'Izabel Cristina',
+    avatar: '/corretor-izabel-cristina.jpg',
+    role: 'broker',
+    email: 'izabel@liderimobiliaria.com.br',
+    phone: '+55 81 98611-6336',
+    password: '123',
+    isWhatsAppConnected: false,
+    status: 'offline',
+    creci: 'CRECI 22925',
     emailNotifications: true
   },
   {
@@ -302,7 +315,7 @@ export const syncWithSupabase = async (): Promise<boolean> => {
       } else {
         const mappedUsers = usersData.map(mapUserFromDB);
         // Filtrar e remover usuários antigos/legados que possam estar na tabela do Supabase
-        const validOfficialIds = ['diretoria-lider', 'daiany-martins', 'matheus-souto', 'samira-martins'];
+        const validOfficialIds = ['diretoria-lider', 'daiany-martins', 'matheus-souto', 'samira-martins', 'izabel-cristina'];
         const cleanUsers = mappedUsers.filter(u => validOfficialIds.includes(u.id) || u.id.startsWith('user-'));
         localStorage.setItem('lider_crm_users', JSON.stringify(cleanUsers));
         setSupabaseStatus({ isRestricted: false, errorMessage: undefined });
@@ -409,7 +422,7 @@ export const getUsers = (): UserCRM[] => {
       const parsed = JSON.parse(stored);
       if (parsed && Array.isArray(parsed) && parsed.length > 0) {
         // IDs válidos permitidos (Oficiais + novos criados com id user-*)
-        const validOfficialIds = ['diretoria-lider', 'daiany-martins', 'matheus-souto', 'samira-martins'];
+        const validOfficialIds = ['diretoria-lider', 'daiany-martins', 'matheus-souto', 'samira-martins', 'izabel-cristina'];
         const hasLegacy = parsed.some((u: any) => 
           !validOfficialIds.includes(u.id) && !u.id.startsWith('user-')
         );

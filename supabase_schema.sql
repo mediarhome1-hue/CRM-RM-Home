@@ -137,6 +137,20 @@ VALUES
     'diretoria-lider',
     'CRECI 23592',
     'Corretora de imóveis com atendimento exclusivo e consultoria imobiliária.'
+  ),
+  (
+    'izabel-cristina', 
+    'Izabel Cristina', 
+    '/corretor-izabel-cristina.jpg', 
+    'broker', 
+    'izabel@liderimobiliaria.com.br', 
+    '+55 81 98611-6336', 
+    '123456', 
+    false, 
+    'online', 
+    'diretoria-lider',
+    'CRECI 22925',
+    'Consultora imobiliária especializada no mercado residencial de Pernambuco.'
   )
 ON CONFLICT (id) DO NOTHING;
 
