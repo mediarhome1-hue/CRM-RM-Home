@@ -118,6 +118,27 @@ export default function Dashboard() {
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [showEmailBanner, setShowEmailBanner] = useState(false);
   const [isTestingEmail, setIsTestingEmail] = useState(false);
+  const [isSyncingMeta, setIsSyncingMeta] = useState(false);
+
+  const handleSyncMeta = async () => {
+    setIsSyncingMeta(true);
+    try {
+      const res = await fetch('/api/facebook/sync');
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert(`Sincronização Meta Ads efetuada com sucesso!\n\n${data.message}`);
+        const { syncWithSupabase } = await import('../../utils/leadsStore');
+        await syncWithSupabase();
+        setLeads(getLeads());
+      } else {
+        alert(`Não foi possível sincronizar no momento:\n\n${data.error || 'Erro desconhecido.'}`);
+      }
+    } catch (err: any) {
+      alert(`Falha de conexão ao sincronizar com Meta: ${err.message}`);
+    } finally {
+      setIsSyncingMeta(false);
+    }
+  };
 
   // WhatsApp Chat States
   const [activeChatLead, setActiveChatLead] = useState<Lead | null>(null);
@@ -1072,6 +1093,19 @@ export default function Dashboard() {
                   </span>
                 </button>
               </div>
+            )}
+
+            {/* Botão para Forçar Busca de Leads do Meta (Meta Ads Sync) */}
+            {(activeTab === 'kanban' || activeTab === 'list') && (
+              <button 
+                onClick={handleSyncMeta}
+                disabled={isSyncingMeta}
+                className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 disabled:opacity-50"
+                title="Puxar forçadamente leads de formulários criados no Meta Ads"
+              >
+                <RefreshCw size={14} className={isSyncingMeta ? 'animate-spin text-blue-600' : 'text-slate-600'} />
+                {isSyncingMeta ? 'Buscando Leads Meta...' : 'Puxar Leads Meta'}
+              </button>
             )}
 
             {/* Quick manual lead trigger */}
