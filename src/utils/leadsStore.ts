@@ -28,7 +28,7 @@ export interface SupabaseStatus {
   lastChecked?: string;
 }
 
-const CRM_CACHE_VERSION = 'v1.0.4';
+const CRM_CACHE_VERSION = 'v1.0.5';
 
 let currentSupabaseStatus: SupabaseStatus = {
   isConfigured: isSupabaseConfigured,
@@ -98,6 +98,19 @@ export const INITIAL_USERS: UserCRM[] = [
     isWhatsAppConnected: false,
     status: 'online',
     birthdate: '1990-12-26',
+    emailNotifications: true
+  },
+  {
+    id: 'amaro-bispo',
+    name: 'Amaro Bispo',
+    avatar: '/corretor-amaro-bispo.jpg',
+    role: 'broker',
+    email: 'amaro@liderimobiliaria.com.br',
+    phone: '+55 81 98324-1960',
+    password: '123',
+    isWhatsAppConnected: false,
+    status: 'offline',
+    creci: 'CRECI 21226',
     emailNotifications: true
   },
   {
@@ -315,7 +328,7 @@ export const syncWithSupabase = async (): Promise<boolean> => {
       } else {
         const mappedUsers = usersData.map(mapUserFromDB);
         // Filtrar e remover usuários antigos/legados que possam estar na tabela do Supabase
-        const validOfficialIds = ['diretoria-lider', 'daiany-martins', 'matheus-souto', 'samira-martins', 'izabel-cristina'];
+        const validOfficialIds = ['diretoria-lider', 'daiany-martins', 'matheus-souto', 'samira-martins', 'izabel-cristina', 'amaro-bispo'];
         const cleanUsers = mappedUsers.filter(u => validOfficialIds.includes(u.id) || u.id.startsWith('user-'));
         localStorage.setItem('lider_crm_users', JSON.stringify(cleanUsers));
         setSupabaseStatus({ isRestricted: false, errorMessage: undefined });
@@ -422,7 +435,7 @@ export const getUsers = (): UserCRM[] => {
       const parsed = JSON.parse(stored);
       if (parsed && Array.isArray(parsed) && parsed.length > 0) {
         // IDs válidos permitidos (Oficiais + novos criados com id user-*)
-        const validOfficialIds = ['diretoria-lider', 'daiany-martins', 'matheus-souto', 'samira-martins', 'izabel-cristina'];
+        const validOfficialIds = ['diretoria-lider', 'daiany-martins', 'matheus-souto', 'samira-martins', 'izabel-cristina', 'amaro-bispo'];
         const hasLegacy = parsed.some((u: any) => 
           !validOfficialIds.includes(u.id) && !u.id.startsWith('user-')
         );

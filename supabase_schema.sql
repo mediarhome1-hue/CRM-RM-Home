@@ -151,6 +151,20 @@ VALUES
     'diretoria-lider',
     'CRECI 22925',
     'Consultora imobiliária especializada no mercado residencial de Pernambuco.'
+  ),
+  (
+    'amaro-bispo', 
+    'Amaro Bispo', 
+    '/corretor-amaro-bispo.jpg', 
+    'broker', 
+    'amaro@liderimobiliaria.com.br', 
+    '+55 81 98324-1960', 
+    '123456', 
+    false, 
+    'online', 
+    'diretoria-lider',
+    'CRECI 21226',
+    'Corretor de imóveis especializado em vendas e consultoria imobiliária.'
   )
 ON CONFLICT (id) DO NOTHING;
 
