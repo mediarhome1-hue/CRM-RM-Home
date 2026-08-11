@@ -874,7 +874,10 @@ export default function Dashboard() {
     return leads.filter(l => l.assignedBrokerId === currentUser.id);
   };
 
-  const visibleLeads = getLeadsByRole();
+  // Ordenar por data decrescente (do mais recente para o mais antigo - FIFO)
+  const visibleLeads = getLeadsByRole().sort((a, b) => 
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
   
   const filteredLeads = visibleLeads.filter(l => 
     l.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
