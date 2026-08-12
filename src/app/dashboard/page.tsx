@@ -10,7 +10,7 @@ import {
   Sparkles, CheckCircle2, QrCode, ToggleLeft, ToggleRight,
   TrendingUp, Award, Clock, ArrowRight, ShieldCheck, Search, Trash2,
   Shield, UserCheck, AlertTriangle, RefreshCw, Layers, Edit, Check, User,
-  Camera, BadgeCheck, Lock, Bell, X, Eye, EyeOff, Send, MessageCircle
+  Camera, BadgeCheck, Lock, Bell, X, Eye, EyeOff, Send, MessageCircle, Menu
 } from 'lucide-react';
 import { 
   getUsers, createUser, updateUser, deleteUser, toggleUserStatus,
@@ -119,6 +119,7 @@ export default function Dashboard() {
   const [showEmailBanner, setShowEmailBanner] = useState(false);
   const [isTestingEmail, setIsTestingEmail] = useState(false);
   const [isSyncingMeta, setIsSyncingMeta] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleSyncMeta = async () => {
     setIsSyncingMeta(true);
@@ -892,9 +893,42 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col md:flex-row relative">
       
+      {/* Header Mobile com Hamburguer */}
+      <div className="md:hidden bg-white border-b border-slate-200/60 px-4 py-3 flex items-center justify-between z-20 flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="p-2 text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+          >
+            {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+          <div className="relative w-[100px] h-[32px]">
+            <Image 
+              src="/Logotipo Lider Branco.svg" 
+              alt="Líder Imobiliária" 
+              fill 
+              className="object-contain object-left" 
+              style={{ filter: 'brightness(0) saturate(100%) invert(28%) sepia(87%) saturate(1630%) hue-rotate(209deg) brightness(84%) contrast(89%)' }}
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {currentUser.role === 'broker' && (
+            <button
+              onClick={handleStatusToggle}
+              className="text-[10px] font-black uppercase px-2 py-1 rounded border"
+            >
+              {currentUser.status === 'online' ? '🟢 ONLINE' : '🔴 OFFLINE'}
+            </button>
+          )}
+          <img src={currentUser.avatar} alt={currentUser.name} className="w-8 h-8 rounded-full object-cover border border-[#3159C1]" />
+        </div>
+      </div>
+
       {/* Sidebar */}
-      <aside className="w-full md:w-[280px] bg-white border-r border-slate-200/60 flex flex-col flex-shrink-0 shadow-sm z-10">
-        <div className="p-6 border-b border-slate-200/60 flex items-center justify-between">
+      <aside className={`${isMobileMenuOpen ? 'block' : 'hidden'} md:block w-full md:w-[280px] bg-white border-r border-slate-200/60 flex flex-col flex-shrink-0 shadow-sm z-30 md:z-10`}>
+        <div className="hidden md:flex p-6 border-b border-slate-200/60 items-center justify-between">
           <div className="relative w-[120px] h-[40px]">
             <Image 
               src="/Logotipo Lider Branco.svg" 
@@ -925,21 +959,21 @@ export default function Dashboard() {
         {/* Dynamic Sidebar Links */}
         <nav className="p-4 space-y-1 flex-1">
           <button 
-            onClick={() => setActiveTab('kanban')}
+            onClick={() => { setActiveTab('kanban'); setIsMobileMenuOpen(false); }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === 'kanban' ? 'bg-[#3159C1] text-white shadow-lg shadow-[#3159C1]/15' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'}`}
           >
             <LayoutDashboard size={18} /> {currentUser.role === 'admin' ? 'Quadro Geral' : 'Quadro Kanban'}
           </button>
           
           <button 
-            onClick={() => setActiveTab('list')}
+            onClick={() => { setActiveTab('list'); setIsMobileMenuOpen(false); }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === 'list' ? 'bg-[#3159C1] text-white shadow-lg shadow-[#3159C1]/15' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'}`}
           >
             <Users size={18} /> {currentUser.role === 'admin' ? 'Banco de Leads' : 'Todos os Leads'}
           </button>
 
           <button 
-            onClick={() => setActiveTab('whatsapp')}
+            onClick={() => { setActiveTab('whatsapp'); setIsMobileMenuOpen(false); }}
             className={`w-full flex items-center justify-between px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === 'whatsapp' ? 'bg-[#3159C1] text-white shadow-lg shadow-[#3159C1]/15' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'}`}
           >
             <div className="flex items-center gap-3">
@@ -952,7 +986,7 @@ export default function Dashboard() {
           {currentUser.role === 'broker' && (
             <>
               <button 
-                onClick={() => setActiveTab('analytics')}
+                onClick={() => { setActiveTab('analytics'); setIsMobileMenuOpen(false); }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === 'analytics' ? 'bg-[#3159C1] text-white shadow-lg shadow-[#3159C1]/15' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'}`}
               >
                 <BarChart3 size={18} /> Relatórios
@@ -963,7 +997,7 @@ export default function Dashboard() {
           {/* Admin / Manager Tabs */}
           {(currentUser.role === 'admin' || currentUser.role === 'manager') && (
             <button 
-              onClick={() => setActiveTab('users')}
+              onClick={() => { setActiveTab('users'); setIsMobileMenuOpen(false); }}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === 'users' ? 'bg-[#3159C1] text-white shadow-lg shadow-[#3159C1]/15' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'}`}
             >
               <UserCheck size={18} /> {currentUser.role === 'admin' ? 'Gestão de Usuários' : 'Minha Equipe'}
@@ -972,7 +1006,7 @@ export default function Dashboard() {
 
           {currentUser.role === 'admin' && (
             <button 
-              onClick={() => setActiveTab('flow')}
+              onClick={() => { setActiveTab('flow'); setIsMobileMenuOpen(false); }}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === 'flow' ? 'bg-[#3159C1] text-white shadow-lg shadow-[#3159C1]/15' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'}`}
             >
               <Layers size={18} /> Regras do CRM & API
@@ -982,7 +1016,7 @@ export default function Dashboard() {
           <div className="w-full h-[1px] bg-slate-200 my-2" />
 
           <button 
-            onClick={() => setActiveTab('profile')}
+            onClick={() => { setActiveTab('profile'); setIsMobileMenuOpen(false); }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === 'profile' ? 'bg-[#3159C1] text-white shadow-lg shadow-[#3159C1]/15' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'}`}
           >
             <User size={18} /> Minha Conta
@@ -1009,10 +1043,10 @@ export default function Dashboard() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-h-0 bg-slate-50 overflow-hidden text-slate-800">
         
-        {/* Header */}
-        <header className="h-[76px] bg-white border-b border-slate-200/60 px-6 flex items-center justify-between flex-shrink-0">
+        {/* Header Desktop / Tablet */}
+        <header className="min-h-[64px] md:h-[76px] bg-white border-b border-slate-200/60 px-4 md:px-6 py-3 md:py-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 flex-shrink-0">
           <div>
-            <h1 className="text-xl font-black text-slate-800">
+            <h1 className="text-lg md:text-xl font-black text-slate-800">
               {activeTab === 'kanban' && '🎯 Quadro de Leads'}
               {activeTab === 'list' && '👥 Painel do Funil'}
               {activeTab === 'whatsapp' && '📱 Integração com WhatsApp'}
@@ -1021,12 +1055,12 @@ export default function Dashboard() {
               {activeTab === 'flow' && '🔀 Central de Distribuição & API'}
               {activeTab === 'profile' && '👤 Minha Conta / Configurações'}
             </h1>
-            <p className="text-xs text-slate-500 font-medium">
+            <p className="text-xs text-slate-500 font-medium hidden sm:block">
               Logado como: <span className="text-[#3159C1] font-bold">{currentUser.name}</span>
             </p>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto justify-end">
             {/* Contador de Corretores Online (Gestores) */}
             {(currentUser.role === 'admin' || currentUser.role === 'manager') && (
               <div className="relative" ref={onlineDropdownRef}>
@@ -1153,7 +1187,7 @@ export default function Dashboard() {
         )}
 
         {/* Tab views */}
-        <div className="flex-1 overflow-auto p-6">
+        <div className="flex-1 overflow-auto p-3 md:p-6">
           
           {/* 1. KANBAN TAB */}
           {activeTab === 'kanban' && (
