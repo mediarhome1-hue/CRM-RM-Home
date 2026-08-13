@@ -313,7 +313,7 @@ export default function Dashboard() {
 
   // Interceptar beforeunload para marcar o corretor offline e acumular o tempo online no banco
   useEffect(() => {
-    const handleBeforeUnload = () => {
+    const handleSetUserOffline = () => {
       const userId = localStorage.getItem('lider_active_broker_id');
       if (!userId) return;
 
@@ -341,40 +341,67 @@ export default function Dashboard() {
           // Salva flag de refresh no sessionStorage
           sessionStorage.setItem('was_online_before_unload', 'true');
 
-          // 2. Envia um PATCH com keepalive diretamente para a API REST do Supabase
+          // 2. Envia PATCH com sendBeacon e keepalive para garantia em Chrome, Safari, Edge, Firefox e Mobile
           const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
           const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
           if (supabaseUrl && supabaseAnonKey) {
             const url = `${supabaseUrl}/rest/v1/users_crm?id=eq.${user.id}`;
-            const body = JSON.stringify({
+            const payload = JSON.stringify({
               status: 'offline',
               total_online_time: updatedTotalTime,
               last_online_at: null
             });
-            const headers = {
-              'apikey': supabaseAnonKey,
-              'Authorization': `Bearer ${supabaseAnonKey}`,
-              'Content-Type': 'application/json',
-              'Prefer': 'return=representation'
-            };
-            fetch(url, {
-              method: 'PATCH',
-              headers,
-              body,
-              keepalive: true
-            }).catch(err => console.error('Erro no keepalive fetch:', err));
+
+            // Tentar sendBeacon primeiro (Padrão ouro para fechamento de abas/navegadores)
+            const blob = new Blob([payload], { type: 'application/json' });
+            let beaconSent = false;
+            if (navigator.sendBeacon) {
+              beaconSent = navigator.sendBeacon(url, blob);
+            }
+
+            // Fallback com fetch keepalive se sendBeacon não for suportado ou falhar
+            if (!beaconSent) {
+              const headers = {
+                'apikey': supabaseAnonKey,
+                'Authorization': `Bearer ${supabaseAnonKey}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+              };
+              fetch(url, {
+                method: 'PATCH',
+                headers,
+                body: payload,
+                keepalive: true
+              }).catch(err => console.error('Erro no keepalive fetch:', err));
+            }
           }
         }
       } catch (err) {
-        console.error('Erro ao processar offline no beforeunload:', err);
+        console.error('Erro ao processar offline no unload:', err);
       }
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
+    // Ouvintes para todos os motores de navegadores (Chrome, Safari/iOS, Firefox, Edge)
+    window.addEventListener('beforeunload', handleSetUserOffline);
+    window.addEventListener('pagehide', handleSetUserOffline);
+    window.addEventListener('offline', handleSetUserOffline);
+
+    // Heartbeat: se ficar sem internet ou inativo, atualiza estado de presença no Supabase a cada 30 segundos
+    const heartbeatInterval = setInterval(() => {
+      if (currentUser && currentUser.role === 'broker' && currentUser.status === 'online') {
+        if (!navigator.onLine) {
+          handleSetUserOffline();
+        }
+      }
+    }, 30000);
+
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('beforeunload', handleSetUserOffline);
+      window.removeEventListener('pagehide', handleSetUserOffline);
+      window.removeEventListener('offline', handleSetUserOffline);
+      clearInterval(heartbeatInterval);
     };
-  }, []);
+  }, [currentUser]);
 
   // Fechar o menu de corretores online ao clicar fora
   useEffect(() => {
