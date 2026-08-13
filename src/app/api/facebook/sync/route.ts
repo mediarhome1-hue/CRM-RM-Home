@@ -65,15 +65,36 @@ export async function GET(req: Request) {
           let email = '';
 
           for (const field of fieldData) {
-            const fieldName = field.name.toLowerCase();
+            const fieldName = (field.name || '').toLowerCase().trim();
             const fieldValue = field.values?.[0] || '';
 
-            if (fieldName === 'full_name' || fieldName === 'name' || fieldName === 'nome' || fieldName === 'nome_completo') {
+            if (!fieldValue) continue;
+
+            if (fieldName.includes('name') || fieldName.includes('nome') || fieldName.includes('full_name')) {
               name = fieldValue;
-            } else if (fieldName === 'phone_number' || fieldName === 'phone' || fieldName === 'telefone' || fieldName === 'whatsapp') {
+            } else if (
+              fieldName.includes('phone') || 
+              fieldName.includes('telef') || 
+              fieldName.includes('cel') || 
+              fieldName.includes('whats') || 
+              fieldName.includes('fone') || 
+              fieldName.includes('contato') ||
+              fieldName.includes('mobile')
+            ) {
               phone = fieldValue;
-            } else if (fieldName === 'email' || fieldName === 'e-mail') {
+            } else if (fieldName.includes('email') || fieldName.includes('mail')) {
               email = fieldValue;
+            }
+          }
+
+          if (!phone) {
+            for (const field of fieldData) {
+              const val = field.values?.[0] || '';
+              const digitsOnly = val.replace(/\D/g, '');
+              if (digitsOnly.length >= 10 && digitsOnly.length <= 13) {
+                phone = val;
+                break;
+              }
             }
           }
 

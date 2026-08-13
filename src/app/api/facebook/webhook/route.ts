@@ -66,29 +66,63 @@ export async function POST(req: Request) {
     const leadData = await response.json();
     console.log('[Facebook Webhook] Detalhes do lead recebidos da Meta:', JSON.stringify(leadData, null, 2));
 
-    // Extrair os campos do lead (nome, telefone, email)
+    // Extrair os campos do lead (nome, telefone, email) com busca abrangente por substrings/regex
     const fieldData = leadData.field_data || [];
     let name = '';
     let phone = '';
     let email = '';
 
     for (const field of fieldData) {
-      const fieldName = field.name.toLowerCase();
+      const fieldName = (field.name || '').toLowerCase().trim();
       const fieldValue = field.values?.[0] || '';
 
-      if (fieldName === 'full_name' || fieldName === 'name' || fieldName === 'nome' || fieldName === 'nome_completo') {
+      if (!fieldValue) continue;
+
+      // Nome
+      if (
+        fieldName.includes('name') || 
+        fieldName.includes('nome') || 
+        fieldName.includes('full_name')
+      ) {
         name = fieldValue;
-      } else if (fieldName === 'phone_number' || fieldName === 'phone' || fieldName === 'telefone' || fieldName === 'whatsapp') {
+      } 
+      // Telefone / WhatsApp
+      else if (
+        fieldName.includes('phone') || 
+        fieldName.includes('telef') || 
+        fieldName.includes('cel') || 
+        fieldName.includes('whats') || 
+        fieldName.includes('fone') || 
+        fieldName.includes('contato') ||
+        fieldName.includes('mobile')
+      ) {
         phone = fieldValue;
-      } else if (fieldName === 'email' || fieldName === 'e-mail') {
+      } 
+      // E-mail
+      else if (
+        fieldName.includes('email') || 
+        fieldName.includes('mail')
+      ) {
         email = fieldValue;
+      }
+    }
+
+    // Se o telefone ainda estiver vazio, tentar encontrar por padrão numérico no meio dos campos
+    if (!phone) {
+      for (const field of fieldData) {
+        const val = field.values?.[0] || '';
+        const digitsOnly = val.replace(/\D/g, '');
+        if (digitsOnly.length >= 10 && digitsOnly.length <= 13) {
+          phone = val;
+          break;
+        }
       }
     }
 
     // Sanitizar e validar dados obrigatórios
     if (!name) name = 'Lead Facebook';
     if (!phone) {
-      console.warn('[Facebook Webhook] Lead recebido sem telefone. Ignorando.');
+      console.warn('[Facebook Webhook] Lead recebido sem telefone válido. Dados:', JSON.stringify(fieldData));
       return NextResponse.json({ success: true, info: 'Lead sem telefone ignorado.' });
     }
 
