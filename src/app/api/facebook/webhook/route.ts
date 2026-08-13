@@ -217,9 +217,9 @@ export async function POST(req: Request) {
       }
     }
 
-    // Criar o novo lead
+    // Criar o novo lead (usando timestamp + sufixo randômico único para evitar colisão em envios simultâneos)
     const newLead = {
-      id: `lead-${Date.now()}`,
+      id: `lead-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       name,
       phone,
       email: email || '',
