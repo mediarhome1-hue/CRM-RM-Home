@@ -335,8 +335,8 @@ export const syncWithSupabase = async (): Promise<boolean> => {
       }
     }
 
-    // 2. Sincronizar Leads
-    const { data: leadsData, error: leadsErr } = await supabase.from('leads').select('*');
+    // 2. Sincronizar Leads (Buscando ordenado do mais recente para o mais antigo)
+    const { data: leadsData, error: leadsErr } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
     if (leadsErr) {
       console.error('Erro ao sincronizar leads do Supabase:', leadsErr.message, leadsErr.details);
       success = false;
