@@ -119,3 +119,34 @@ export const sendPasswordResetEmail = async (user: UserCRM, newPassword: string)
 
   return sendEmail(user.email, 'CRM Líder - Suas Credenciais Foram Atualizadas', html);
 };
+
+/**
+ * Envia e-mail de boas-vindas para novos usuários cadastrados no CRM
+ */
+export const sendWelcomeEmail = async (user: UserCRM, passwordProvided: string): Promise<{ success: boolean; error?: string }> => {
+  const html = getBaseHtml(
+    'Bem-vindo ao CRM Líder Imobiliária!',
+    `
+    <h2>Seja bem-vindo(a), ${user.name}!</h2>
+    <p>Seu cadastro no <strong>CRM da Líder Imobiliária</strong> foi concluído com sucesso. Agora você tem acesso completo ao nosso sistema para acompanhamento de leads, gestão de clientes e atendimento integrado via WhatsApp.</p>
+    
+    <div class="detail-card">
+      <h3 style="margin-top: 0; font-size: 16px; color: #0f172a;">Suas Credenciais de Acesso</h3>
+      <div class="detail-item"><strong>E-mail de Login:</strong> ${user.email}</div>
+      <div class="detail-item"><strong>Senha Inicial:</strong> <span style="font-family: monospace; background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 15px;">${passwordProvided}</span></div>
+      <div class="detail-item"><strong>Perfil de Acesso:</strong> ${
+        user.role === 'admin' ? 'Diretoria / Admin' : 
+        user.role === 'manager' ? 'Gerência' : 'Consultor Corretor'
+      }</div>
+    </div>
+    
+    <p>Para sua segurança, recomendamos acessar a aba <strong>"Minha Conta"</strong> logo após seu primeiro login para personalizar sua senha e dados do perfil.</p>
+    <br>
+    <div style="text-align: center;">
+      <a href="https://www.liderimobiliariape.com.br/login" class="button">Acessar a Plataforma CRM</a>
+    </div>
+    `
+  );
+
+  return sendEmail(user.email, '🚀 Bem-vindo ao CRM Líder Imobiliária - Acesso ao Sistema', html);
+};

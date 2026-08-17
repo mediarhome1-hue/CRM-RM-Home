@@ -573,7 +573,7 @@ export default function Dashboard() {
     e.preventDefault();
     if (!newUserName || !newUserEmail || !newUserPhone) return;
 
-    createUser({
+    const newUserCreated = createUser({
       name: newUserName,
       email: newUserEmail,
       phone: newUserPhone,
@@ -590,6 +590,18 @@ export default function Dashboard() {
     });
 
     setUsers(getUsers());
+
+    // Disparar e-mail de boas-vindas com dados de acesso e link da plataforma
+    if (newUserCreated) {
+      import('../../utils/emailService').then(({ sendWelcomeEmail }) => {
+        sendWelcomeEmail(newUserCreated, newUserPassword || '123').then(res => {
+          if (!res.success) {
+            console.warn('Aviso: Usuário criado, mas falha ao enviar e-mail de boas-vindas:', res.error);
+          }
+        });
+      });
+    }
+
     setNewUserName('');
     setNewUserEmail('');
     setNewUserPhone('');
@@ -597,7 +609,7 @@ export default function Dashboard() {
     setNewUserManagerId('');
     setNewUserCreci('');
     setNewUserBio('');
-    alert('Usuário cadastrado com sucesso!');
+    alert(`Usuário "${newUserName}" cadastrado com sucesso! Um e-mail de boas-vindas e instrução de acesso foi enviado para ${newUserEmail}.`);
   };
 
   const handleDeleteUser = (userId: string) => {
