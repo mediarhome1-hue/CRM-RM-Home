@@ -280,7 +280,7 @@ export default function Dashboard() {
         })
         .subscribe();
 
-      // Polling de segurança a cada 6 segundos para garantir que dados unificados estejam sincronizados
+      // Polling de segurança em alta velocidade (2 segundos) para garantir atualização instantânea no CRM sem delay
       pollingInterval = setInterval(async () => {
         const { syncWithSupabase } = await import('../../utils/leadsStore');
         const success = await syncWithSupabase();
@@ -295,7 +295,7 @@ export default function Dashboard() {
             setCurrentUser(updatedUser);
           }
         }
-      }, 6000);
+      }, 2000);
     }
 
     return () => {
