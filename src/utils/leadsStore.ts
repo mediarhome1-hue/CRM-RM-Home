@@ -177,6 +177,19 @@ export const INITIAL_USERS: UserCRM[] = [
     status: 'offline',
     creci: 'CRECI 20225',
     emailNotifications: true
+  },
+  {
+    id: 'edson-santos',
+    name: 'Edson Santos',
+    avatar: '/corretor-edson-santos.jpg',
+    role: 'broker',
+    email: 'edson@liderimobiliaria.com.br',
+    phone: '+55 81 98972-3403',
+    password: '123',
+    isWhatsAppConnected: false,
+    status: 'offline',
+    creci: 'CRECI 22429',
+    emailNotifications: true
   }
 ];
 
@@ -341,7 +354,7 @@ export const syncWithSupabase = async (): Promise<boolean> => {
       } else {
         const mappedUsers = usersData.map(mapUserFromDB);
         // Filtrar e remover usuários antigos/legados que possam estar na tabela do Supabase
-        const validOfficialIds = ['diretoria-lider', 'daiany-martins', 'matheus-souto', 'samira-martins', 'izabel-cristina', 'amaro-bispo', 'etiene-maria'];
+        const validOfficialIds = ['diretoria-lider', 'daiany-martins', 'matheus-souto', 'samira-martins', 'izabel-cristina', 'amaro-bispo', 'etiene-maria', 'edson-santos'];
         const cleanUsers = mappedUsers.filter(u => validOfficialIds.includes(u.id) || u.id.startsWith('user-'));
         localStorage.setItem('lider_crm_users', JSON.stringify(cleanUsers));
         setSupabaseStatus({ isRestricted: false, errorMessage: undefined });
@@ -448,7 +461,7 @@ export const getUsers = (): UserCRM[] => {
       const parsed = JSON.parse(stored);
       if (parsed && Array.isArray(parsed) && parsed.length > 0) {
         // IDs válidos permitidos (Oficiais + novos criados com id user-*)
-        const validOfficialIds = ['diretoria-lider', 'daiany-martins', 'matheus-souto', 'samira-martins', 'izabel-cristina', 'amaro-bispo', 'etiene-maria'];
+        const validOfficialIds = ['diretoria-lider', 'daiany-martins', 'matheus-souto', 'samira-martins', 'izabel-cristina', 'amaro-bispo', 'etiene-maria', 'edson-santos'];
         const hasLegacy = parsed.some((u: any) => 
           !validOfficialIds.includes(u.id) && !u.id.startsWith('user-')
         );
