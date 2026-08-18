@@ -717,54 +717,52 @@ export default function Dashboard() {
     if (profileBirthdate !== (currentUser.birthdate || '')) changedFields.push('Data de Nascimento');
     if (currentUser.role === 'admin' && profileEmail && profileEmail !== currentUser.email) changedFields.push('E-mail de Acesso (Login)');
 
-    setTimeout(() => {
-      const updates: Partial<UserCRM> = {
-        name: profileName,
-        phone: profilePhone,
-        avatar: profileAvatar || currentUser.avatar,
-        password: profilePassword || currentUser.password,
-        creci: profileCreci || undefined,
-        bio: profileBio || undefined,
-        birthdate: profileBirthdate || undefined,
-        emailNotifications: profileEmailNotify,
-        ...(currentUser.role === 'admin' && profileEmail ? { email: profileEmail } : {})
-      };
+    const updates: Partial<UserCRM> = {
+      name: profileName,
+      phone: profilePhone,
+      avatar: profileAvatar || currentUser.avatar,
+      password: profilePassword || currentUser.password,
+      creci: profileCreci || undefined,
+      bio: profileBio || undefined,
+      birthdate: profileBirthdate || undefined,
+      emailNotifications: profileEmailNotify,
+      ...(currentUser.role === 'admin' && profileEmail ? { email: profileEmail } : {})
+    };
 
-      const updatedUsers = updateUser(currentUser.id, updates);
-      setUsers(getUsers());
+    const updatedUsers = updateUser(currentUser.id, updates);
+    setUsers(getUsers());
 
-      const freshUser = updatedUsers.find(u => u.id === currentUser.id);
-      if (freshUser) {
-        setCurrentUser(freshUser);
-        setProfileName(freshUser.name);
-        setProfileEmail(freshUser.email);
-        setProfilePhone(freshUser.phone);
-        setProfileAvatar(freshUser.avatar);
-        setProfilePassword(freshUser.password || '');
-        setProfileCreci(freshUser.creci || '');
-        setProfileBio(freshUser.bio || '');
-        setProfileBirthdate(freshUser.birthdate || '');
-        setProfileEmailNotify(freshUser.emailNotifications ?? true);
-      }
+    const freshUser = updatedUsers.find(u => u.id === currentUser.id);
+    if (freshUser) {
+      setCurrentUser(freshUser);
+      setProfileName(freshUser.name);
+      setProfileEmail(freshUser.email);
+      setProfilePhone(freshUser.phone);
+      setProfileAvatar(freshUser.avatar);
+      setProfilePassword(freshUser.password || '');
+      setProfileCreci(freshUser.creci || '');
+      setProfileBio(freshUser.bio || '');
+      setProfileBirthdate(freshUser.birthdate || '');
+      setProfileEmailNotify(freshUser.emailNotifications ?? true);
+    }
 
-      setIsProfileSaving(false);
-      setProfilePasswordConfirm('');
-      setShowEmailBanner(true);
+    setIsProfileSaving(false);
+    setProfilePasswordConfirm('');
+    setShowEmailBanner(true);
 
-      // Disparar e-mail se houve alteração e a notificação estiver ativa
-      if (changedFields.length > 0 && profileEmailNotify) {
-        import('../../utils/emailService').then(({ sendProfileUpdateEmail }) => {
-          sendProfileUpdateEmail(freshUser || currentUser, changedFields).then(res => {
-            if (!res.success) {
-              alert(`Aviso: Perfil atualizado no banco, mas a notificação por e-mail falhou:\n\nDetalhe: ${res.error}`);
-            }
-          });
+    // Disparar e-mail em segundo plano de forma assíncrona sem travar a interface
+    if (changedFields.length > 0 && profileEmailNotify) {
+      import('../../utils/emailService').then(({ sendProfileUpdateEmail }) => {
+        sendProfileUpdateEmail(freshUser || currentUser, changedFields).then(res => {
+          if (!res.success) {
+            console.warn('Notificação de e-mail enviada com aviso:', res.error);
+          }
         });
-      }
-      setTimeout(() => {
-        setShowEmailBanner(false);
-      }, 5000);
-    }, 850);
+      });
+    }
+    setTimeout(() => {
+      setShowEmailBanner(false);
+    }, 5000);
   };
 
   const handleTestEmailSend = async () => {
