@@ -1261,9 +1261,19 @@ export default function Dashboard() {
                             
                             <div className="space-y-1 text-xs text-slate-500 font-medium mb-3">
                               <div className="flex items-center gap-1.5"><Phone size={12} className="text-[#3159C1]" /> {lead.phone}</div>
-                              {currentUser.role !== 'broker' && assignedUser && (
-                                <div className="text-[10px] text-slate-600 font-bold bg-slate-100 border border-slate-200/60 px-2 py-0.5 rounded self-start mt-2 block w-fit">
-                                  Corretor: {assignedUser.name}
+                              {currentUser.role !== 'broker' && (
+                                <div className="mt-2 text-[10px]" onClick={(e) => e.stopPropagation()}>
+                                  <select
+                                    value={lead.assignedBrokerId}
+                                    onChange={(e) => handleReassignLead(lead.id, e.target.value)}
+                                    className="w-full bg-slate-100 hover:bg-slate-200/80 border border-slate-200/80 text-slate-700 text-[10px] font-bold rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-[#3159C1] cursor-pointer"
+                                  >
+                                    {users.map(u => (
+                                      <option key={u.id} value={u.id}>
+                                        Corretor: {u.name}
+                                      </option>
+                                    ))}
+                                  </select>
                                 </div>
                               )}
                             </div>
@@ -1336,7 +1346,21 @@ export default function Dashboard() {
                             </span>
                           </td>
                           <td className="py-4 px-6 text-xs font-bold text-slate-700">
-                            {assignedUser ? assignedUser.name : 'Não Atribuído'}
+                            {currentUser.role === 'admin' || currentUser.role === 'manager' ? (
+                              <select
+                                value={lead.assignedBrokerId}
+                                onChange={(e) => handleReassignLead(lead.id, e.target.value)}
+                                className="bg-slate-50 border border-slate-200 text-xs font-bold text-[#3159C1] hover:text-[#234294] focus:outline-none cursor-pointer rounded-lg px-2 py-1 focus:ring-1 focus:ring-[#3159C1]"
+                              >
+                                {users.map(u => (
+                                  <option key={u.id} value={u.id} className="text-slate-800 bg-white font-medium">
+                                    {u.name} ({u.role === 'admin' ? 'Diretoria' : u.role === 'manager' ? 'Gerente' : 'Corretor'})
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              assignedUser ? assignedUser.name : 'Não Atribuído'
+                            )}
                           </td>
                           <td className="py-4 px-6">
                             <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${
