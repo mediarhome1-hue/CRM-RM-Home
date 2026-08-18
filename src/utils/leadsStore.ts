@@ -61,6 +61,14 @@ export const setSupabaseStatus = (status: Partial<SupabaseStatus>) => {
 };
 
 
+export interface Task {
+  id: string;
+  title: string;
+  datetime: string; // ISO String (YYYY-MM-DDTHH:mm)
+  completed: boolean;
+  createdAt: string;
+}
+
 export interface Lead {
   id: string;
   name: string;
@@ -72,6 +80,7 @@ export interface Lead {
   createdAt: string;
   assignedBrokerId: string;
   notes: string[];
+  tasks?: Task[];
   lastActivityAt: string;
   attendedAt?: string; // Marcado quando sai do status 'new' ou recebe nota
 }
@@ -246,6 +255,7 @@ const mapLeadToDB = (l: Lead) => ({
   created_at: l.createdAt,
   assigned_broker_id: l.assignedBrokerId,
   notes: l.notes,
+  tasks: l.tasks || [],
   last_activity_at: l.lastActivityAt,
   attended_at: l.attendedAt || null
 });
@@ -261,6 +271,7 @@ const mapLeadFromDB = (row: any): Lead => ({
   createdAt: row.created_at,
   assignedBrokerId: row.assigned_broker_id,
   notes: row.notes || [],
+  tasks: row.tasks || [],
   lastActivityAt: row.last_activity_at,
   attendedAt: row.attended_at || undefined
 });
@@ -746,6 +757,50 @@ export const addLeadNote = (leadId: string, note: string): Lead[] => {
         notes: [...l.notes, note],
         lastActivityAt: new Date().toISOString(),
         attendedAt: l.attendedAt || new Date().toISOString()
+      };
+      pushLeadToSupabase(updated);
+      return updated;
+    }
+    return l;
+  });
+  saveLeads(leads);
+  return leads;
+};
+
+export const addLeadTask = (leadId: string, title: string, datetime: string): Lead[] => {
+  const newTask: Task = {
+    id: `task-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    title,
+    datetime,
+    completed: false,
+    createdAt: new Date().toISOString()
+  };
+
+  const leads = getLeads().map(l => {
+    if (l.id === leadId) {
+      const currentTasks = l.tasks || [];
+      const updated: Lead = {
+        ...l,
+        tasks: [...currentTasks, newTask],
+        lastActivityAt: new Date().toISOString()
+      };
+      pushLeadToSupabase(updated);
+      return updated;
+    }
+    return l;
+  });
+  saveLeads(leads);
+  return leads;
+};
+
+export const toggleLeadTask = (leadId: string, taskId: string): Lead[] => {
+  const leads = getLeads().map(l => {
+    if (l.id === leadId && l.tasks) {
+      const updatedTasks = l.tasks.map(t => t.id === taskId ? { ...t, completed: !t.completed } : t);
+      const updated: Lead = {
+        ...l,
+        tasks: updatedTasks,
+        lastActivityAt: new Date().toISOString()
       };
       pushLeadToSupabase(updated);
       return updated;

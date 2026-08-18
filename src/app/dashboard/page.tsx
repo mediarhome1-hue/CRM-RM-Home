@@ -10,14 +10,14 @@ import {
   Sparkles, CheckCircle2, QrCode, ToggleLeft, ToggleRight,
   TrendingUp, Award, Clock, ArrowRight, ShieldCheck, Search, Trash2,
   Shield, UserCheck, AlertTriangle, RefreshCw, Layers, Edit, Check, User,
-  Camera, BadgeCheck, Lock, Bell, X, Eye, EyeOff, Send, MessageCircle, Menu
+  Camera, BadgeCheck, Lock, Bell, X, Eye, EyeOff, Send, MessageCircle, Menu, CheckSquare
 } from 'lucide-react';
 import { 
   getUsers, createUser, updateUser, deleteUser, toggleUserStatus,
   getLeads, saveLeads, addLeadManual, 
-  updateLeadStatus, addLeadNote, deleteLead,
+  updateLeadStatus, addLeadNote, addLeadTask, toggleLeadTask, deleteLead,
   runTransbordoCheck, reassignLead, logUserOffline,
-  UserCRM, Lead, UserRole, INITIAL_USERS, Message,
+  UserCRM, Lead, Task, UserRole, INITIAL_USERS, Message,
   getSupabaseStatus, SupabaseStatus
 } from '../../utils/leadsStore';
 import { supabase, isSupabaseConfigured } from '../../utils/supabaseClient';
@@ -158,6 +158,10 @@ export default function Dashboard() {
   const [isWhatsAppActive, setIsWhatsAppActive] = useState(false);
   const [showNotificationSim, setShowNotificationSim] = useState(false);
   const [simLead, setSimLead] = useState<{name: string, phone: string, prop: string} | null>(null);
+
+  // Agenda de Tarefas do Lead
+  const [taskTitle, setTaskTitle] = useState('');
+  const [taskDatetime, setTaskDatetime] = useState('');
 
   // Transbordo (Redistribution) Results
   const [transbordoResults, setTransbordoResults] = useState<{ count: number, details: string[] } | null>(null);
@@ -532,6 +536,42 @@ export default function Dashboard() {
     setLeads(updated);
     setSelectedLead(updated.find(l => l.id === selectedLead.id) || null);
     setNewNote('');
+  };
+
+  const handleAddTaskSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!taskTitle || !taskDatetime || !selectedLead) return;
+
+    const updated = addLeadTask(selectedLead.id, taskTitle, taskDatetime);
+    setLeads(updated);
+    setSelectedLead(updated.find(l => l.id === selectedLead.id) || null);
+
+    // Se o corretor responsável tiver WhatsApp cadastrado, envia um lembrete no WhatsApp dele
+    const assignedUser = users.find(u => u.id === selectedLead.assignedBrokerId);
+    if (assignedUser && assignedUser.phone) {
+      const formattedDate = new Date(taskDatetime).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+      const text = `📅 *NOVA TAREFA AGENDADA NO CRM LÍDER!*\n\n📌 *Tarefa:* ${taskTitle}\n👤 *Cliente:* ${selectedLead.name}\n📱 *Contato:* ${selectedLead.phone}\n⏰ *Data/Hora:* ${formattedDate}\n\n👉 Acesse o CRM: https://www.liderimobiliariape.com.br/dashboard`;
+
+      fetch('/api/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leadId: selectedLead.id,
+          to: assignedUser.phone,
+          text
+        })
+      }).catch(err => console.error('Erro ao enviar lembrete no WhatsApp:', err));
+    }
+
+    setTaskTitle('');
+    setTaskDatetime('');
+  };
+
+  const handleToggleTask = (taskId: string) => {
+    if (!selectedLead) return;
+    const updated = toggleLeadTask(selectedLead.id, taskId);
+    setLeads(updated);
+    setSelectedLead(updated.find(l => l.id === selectedLead.id) || null);
   };
 
   const handleDeleteLead = (leadId: string) => {
@@ -2676,6 +2716,107 @@ export default function Dashboard() {
                         {col.title.replace(' 🎉', '').replace(' ❌', '')}
                       </button>
                     ))}
+                  </div>
+                </div>
+
+                {/* AGENDA DE TAREFAS (CLEAN TASK SCHEDULER COM CALENDÁRIO E WHATSAPP) */}
+                <div className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 bg-[#3159C1]/10 text-[#3159C1] rounded-lg">
+                        <Calendar size={16} />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-800">Agenda de Tarefas do Lead</h4>
+                        <p className="text-[10px] text-slate-500">Agende compromissos (ligar, visitar, proposta) com notificação automática no seu WhatsApp.</p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold bg-[#3159C1] text-white px-2 py-0.5 rounded-full">
+                      {(selectedLead.tasks || []).filter(t => !t.completed).length} pendente(s)
+                    </span>
+                  </div>
+
+                  {/* Formulário de Agendamento */}
+                  <form onSubmit={handleAddTaskSubmit} className="space-y-3 bg-white p-3.5 border border-slate-200/60 rounded-xl shadow-xs">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-slate-600 block">O que precisa ser feito?</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Ex: Ligar para o cliente apresentar o Valle Encantado..."
+                        value={taskTitle}
+                        onChange={(e) => setTaskTitle(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 font-medium focus:ring-1 focus:ring-[#3159C1] focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
+                      <div className="sm:col-span-2 space-y-1">
+                        <label className="text-[11px] font-bold text-slate-600 block">Data e Horário</label>
+                        <input
+                          type="datetime-local"
+                          required
+                          value={taskDatetime}
+                          onChange={(e) => setTaskDatetime(e.target.value)}
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 font-medium focus:ring-1 focus:ring-[#3159C1] focus:outline-none cursor-pointer"
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        className="w-full py-2 bg-[#3159C1] hover:bg-[#234294] text-white font-bold rounded-lg text-xs uppercase tracking-wider shadow-xs active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                      >
+                        <CheckSquare size={14} /> Agendar
+                      </button>
+                    </div>
+                  </form>
+
+                  {/* Lista de Tarefas Agendadas */}
+                  <div className="space-y-2">
+                    {(selectedLead.tasks || []).length > 0 ? (
+                      selectedLead.tasks?.map((t) => {
+                        const isPast = new Date(t.datetime).getTime() < Date.now() && !t.completed;
+                        const formattedDate = new Date(t.datetime).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+                        return (
+                          <div
+                            key={t.id}
+                            className={`p-3 rounded-xl border transition-all flex items-center justify-between gap-3 ${
+                              t.completed 
+                                ? 'bg-slate-100/60 border-slate-200 text-slate-400 line-through' 
+                                : isPast
+                                ? 'bg-red-50/60 border-red-200 text-red-700'
+                                : 'bg-white border-slate-200 text-slate-800 shadow-xs'
+                            }`}
+                          >
+                            <div className="flex items-start gap-2.5 min-w-0">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleTask(t.id)}
+                                className={`mt-0.5 p-0.5 rounded transition-colors ${
+                                  t.completed ? 'bg-emerald-500 text-white' : 'border border-slate-300 text-transparent hover:border-[#3159C1]'
+                                }`}
+                              >
+                                <Check size={12} />
+                              </button>
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold leading-snug truncate">{t.title}</p>
+                                <span className={`text-[10px] font-semibold flex items-center gap-1 mt-0.5 ${
+                                  t.completed ? 'text-slate-400' : isPast ? 'text-red-600 font-bold' : 'text-[#3159C1]'
+                                }`}>
+                                  <Clock size={10} /> {formattedDate} {isPast ? '(Atrasada)' : ''}
+                                </span>
+                              </div>
+                            </div>
+
+                            <span className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200/60 flex items-center gap-1 flex-shrink-0">
+                              <MessageSquare size={10} /> Lembrete WhatsApp
+                            </span>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-[11px] text-slate-400 italic text-center py-2">Nenhuma tarefa agendada para este lead.</p>
+                    )}
                   </div>
                 </div>
 

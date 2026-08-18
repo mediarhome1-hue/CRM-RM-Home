@@ -242,6 +242,28 @@ export async function POST(req: Request) {
     }
 
     console.log(`[Facebook Webhook] Novo lead "${name}" inserido com sucesso e atribuído a ${assignedBrokerId}.`);
+
+    // Disparar notificação por WhatsApp para o corretor responsável
+    const assignedUser = users?.find(u => u.id === assignedBrokerId);
+    if (assignedUser && assignedUser.phone) {
+      try {
+        const textNotification = `🚨 *NOVO LEAD ATRIBUÍDO NO CRM LÍDER!*\n\n👤 *Cliente:* ${name}\n📱 *Contato:* ${phone}\n🏠 *Interesse:* ${formName}\n\n👉 Acesse o CRM para atender: https://www.liderimobiliariape.com.br/dashboard`;
+        
+        const notifyUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.liderimobiliariape.com.br'}/api/whatsapp/send`;
+        fetch(notifyUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            leadId: newLead.id,
+            to: assignedUser.phone,
+            text: textNotification
+          })
+        }).catch(err => console.error('Erro ao enviar notificação no WhatsApp:', err));
+      } catch (err) {
+        console.error('Falha ao preparar notificação no WhatsApp:', err);
+      }
+    }
+
     return NextResponse.json({ success: true, leadId: newLead.id, isDuplicate: false });
 
   } catch (error: any) {
