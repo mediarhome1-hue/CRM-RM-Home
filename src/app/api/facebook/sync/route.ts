@@ -14,19 +14,34 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Token de acesso do Facebook não configurado.' }, { status: 500 });
     }
 
-    // 1. Buscar formulários da página através do me/leadgen_forms ou buscar leads diretamente
-    // Vamos buscar primeiro as contas/páginas associadas ao token
+    // 1. Tentar buscar as contas do usuário (/me/accounts) ou dados diretos do nó (/me)
+    let pages: any[] = [];
     const meRes = await fetch(`https://graph.facebook.com/v20.0/me/accounts?access_token=${pageAccessToken}`);
-    if (!meRes.ok) {
-      const errText = await meRes.text();
-      return NextResponse.json({ error: `Erro ao consultar páginas no Meta: ${errText}` }, { status: 502 });
+    
+    if (meRes.ok) {
+      const meData = await meRes.json();
+      pages = meData.data || [];
+    } else {
+      // Se /me/accounts falhar (ex: token de página direto ou permissão granular restrita), testamos consultar a própria entidade /me
+      const directMeRes = await fetch(`https://graph.facebook.com/v20.0/me?fields=id,name,access_token&access_token=${pageAccessToken}`);
+      if (directMeRes.ok) {
+        const directMeData = await directMeRes.json();
+        if (directMeData.id) {
+          pages = [{ id: directMeData.id, name: directMeData.name, access_token: pageAccessToken }];
+        }
+      }
     }
 
-    const meData = await meRes.json();
-    const pages = meData.data || [];
-
     if (pages.length === 0) {
-      return NextResponse.json({ error: 'Nenhuma página do Facebook encontrada para este Token.' }, { status: 404 });
+      // Tentar consultar os formulários (leadgen_forms) direto de um PAGE_ID ou AD_ACCOUNT se houver configurado nas variáveis de ambiente
+      const envPageId = process.env.FACEBOOK_PAGE_ID || process.env.FB_PAGE_ID;
+      if (envPageId) {
+        pages = [{ id: envPageId, access_token: pageAccessToken }];
+      } else {
+        return NextResponse.json({ 
+          error: 'O token configurado (FACEBOOK_PAGE_ACCESS_TOKEN) expirou ou não tem permissão para listar /me/accounts. Atualize o Token de Acesso da Página no painel da Meta/Vercel.' 
+        }, { status: 400 });
+      }
     }
 
     let importedLeadsCount = 0;
