@@ -20,6 +20,8 @@ export default function LeadModal({ isOpen, onClose, propertyName, propertyBg }:
   const [isDuplicate, setIsDuplicate] = useState(false);
   const [assignedBroker, setAssignedBroker] = useState<UserCRM | null>(null);
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   React.useEffect(() => {
     if (isOpen) {
       const sync = async () => {
@@ -30,26 +32,53 @@ export default function LeadModal({ isOpen, onClose, propertyName, propertyBg }:
     }
   }, [isOpen]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !phone) return;
+    if (!name || !phone || isSubmitting) return;
 
-    // Register lead using advanced routing
-    const { lead, isDuplicate: duplicate } = registerLeadFromSite({
-      name,
-      phone,
-      email,
-      propertyName,
-      propertyBg,
-    });
+    setIsSubmitting(true);
 
-    // Find the broker assigned to this lead
-    const brokers = getUsers();
-    const broker = brokers.find(b => b.id === lead.assignedBrokerId) || null;
-    
-    setAssignedBroker(broker);
-    setIsDuplicate(duplicate);
-    setIsSubmitted(true);
+    try {
+      // Register lead using advanced routing
+      const { lead, isDuplicate: duplicate } = registerLeadFromSite({
+        name,
+        phone,
+        email,
+        propertyName,
+        propertyBg,
+      });
+
+      // Find the broker assigned to this lead
+      const brokers = getUsers();
+      const broker = brokers.find(b => b.id === lead.assignedBrokerId) || null;
+
+      // Disparar notificação por WhatsApp para o corretor responsável
+      if (broker && broker.phone) {
+        try {
+          const textNotification = `🚨 *NOVO LEAD DO SITE LÍDER!*\n\n👤 *Cliente:* ${name}\n📱 *Contato:* ${phone}\n🏠 *Interesse:* ${propertyName}\n\n👉 Acesse o CRM para atender: https://www.liderimobiliariape.com.br/dashboard`;
+          
+          fetch('/api/whatsapp/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              leadId: lead.id,
+              to: broker.phone,
+              text: textNotification
+            })
+          }).catch(err => console.error('Erro ao notificar corretor no WhatsApp:', err));
+        } catch (err) {
+          console.error('Erro ao montar notificação no WhatsApp:', err);
+        }
+      }
+      
+      setAssignedBroker(broker);
+      setIsDuplicate(duplicate);
+      setIsSubmitted(true);
+    } catch (err) {
+      console.error('Erro ao registrar lead pelo site:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleClose = () => {
@@ -145,9 +174,19 @@ export default function LeadModal({ isOpen, onClose, propertyName, propertyBg }:
 
                   <button
                     type="submit"
-                    className={`w-full py-4 text-white font-bold rounded-2xl shadow-lg hover:shadow-xl transition-all text-lg flex items-center justify-center gap-2 ${propertyBg} hover:opacity-90 active:scale-95`}
+                    disabled={isSubmitting}
+                    className={`w-full py-4 text-white font-bold rounded-2xl shadow-lg hover:shadow-xl transition-all text-lg flex items-center justify-center gap-2 ${propertyBg} hover:opacity-90 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
-                    <MessageSquare size={20} /> Falar com Especialista
+                    {isSubmitting ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Enviando...
+                      </>
+                    ) : (
+                      <>
+                        <MessageSquare size={20} /> Falar com Especialista
+                      </>
+                    )}
                   </button>
                 </form>
               </div>
