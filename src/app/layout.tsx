@@ -15,10 +15,10 @@ const SITE_URL = "https://www.liderimobiliariape.com.br";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Líder Imobiliária PE | Casas e Apartamentos Minha Casa Minha Vida em Pernambuco",
+    default: "Líder Imobiliária - A Melhor Experiência na Realização do Sonho da Casa Própria",
     template: "%s | Líder Imobiliária"
   },
-  description: "Encontre os melhores imóveis em Recife, Paulista, Olinda e Região Metropolitana. Venda de casas e apartamentos pelo programa Minha Casa Minha Vida e Morar Bem PE. A maior imobiliária de Pernambuco!",
+  description: "Na Líder Imobiliária, você tem suporte completo, carteira de imóveis exclusiva e uma equipe de corretores apaixonada pelo que faz. Aqui na Líder Nossa Meta é Realizar o Seu Sonho!",
   keywords: [
     "Líder Imobiliária",
     "Imobiliária Pernambuco",
@@ -60,8 +60,8 @@ export const metadata: Metadata = {
     locale: "pt_BR",
     url: SITE_URL,
     siteName: "Líder Imobiliária PE",
-    title: "Líder Imobiliária | A Maior de Pernambuco - Imóveis e Minha Casa Minha Vida",
-    description: "Compre sua casa ou apartamento próprio com subsídios do Governo Federal e Estadual em Pernambuco. Atendimento personalizado e simulação gratuita!",
+    title: "Líder Imobiliária - A Melhor Experiência na Realização do Sonho da Casa Própria",
+    description: "Na Líder Imobiliária, você tem suporte completo, carteira de imóveis exclusiva e uma equipe de corretores apaixonada pelo que faz. Aqui na Líder Nossa Meta é Realizar o Seu Sonho!",
     images: [
       {
         url: `${SITE_URL}/prop1.jpg`,
@@ -73,8 +73,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Líder Imobiliária PE | Imóveis Minha Casa Minha Vida",
-    description: "Encontre seu imóvel dos sonhos em Recife, Paulista e Região com subsídios exclusivos.",
+    title: "Líder Imobiliária - A Melhor Experiência na Realização do Sonho da Casa Própria",
+    description: "Na Líder Imobiliária, você tem suporte completo, carteira de imóveis exclusiva e uma equipe de corretores apaixonada pelo que faz. Aqui na Líder Nossa Meta é Realizar o Seu Sonho!",
     images: [`${SITE_URL}/prop1.jpg`],
   },
   verification: {
