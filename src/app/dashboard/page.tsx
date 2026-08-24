@@ -474,10 +474,14 @@ export default function Dashboard() {
     if (selectedLead) {
       const freshLead = leads.find(l => l.id === selectedLead.id);
       if (freshLead) {
+        const freshTasksLen = freshLead.tasks ? freshLead.tasks.length : 0;
+        const currentTasksLen = selectedLead.tasks ? selectedLead.tasks.length : 0;
+
         if (
           freshLead.assignedBrokerId !== selectedLead.assignedBrokerId ||
           freshLead.status !== selectedLead.status ||
           freshLead.notes.length !== selectedLead.notes.length ||
+          freshTasksLen !== currentTasksLen ||
           freshLead.lastActivityAt !== selectedLead.lastActivityAt
         ) {
           setSelectedLead(freshLead);
