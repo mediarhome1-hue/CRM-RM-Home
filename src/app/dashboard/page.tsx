@@ -612,48 +612,58 @@ export default function Dashboard() {
     setAddEmail('');
   };
 
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+
   // --- GESTÃO DE USUÁRIOS (DIREÇÃO) ---
   const handleCreateUser = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newUserName || !newUserEmail || !newUserPhone) return;
+    if (!newUserName || !newUserEmail || !newUserPhone || isCreatingUser) return;
 
-    const newUserCreated = createUser({
-      name: newUserName,
-      email: newUserEmail,
-      phone: newUserPhone,
-      password: newUserPassword,
-      role: newUserRole,
-      avatar: newUserRole === 'manager' 
-        ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150' 
-        : newUserRole === 'admin'
-        ? 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150'
-        : 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150',
-      managerId: newUserRole === 'broker' && newUserManagerId ? newUserManagerId : undefined,
-      creci: newUserCreci || undefined,
-      bio: newUserBio || undefined
-    });
+    setIsCreatingUser(true);
 
-    setUsers(getUsers());
-
-    // Disparar e-mail de boas-vindas com dados de acesso e link da plataforma
-    if (newUserCreated) {
-      import('../../utils/emailService').then(({ sendWelcomeEmail }) => {
-        sendWelcomeEmail(newUserCreated, newUserPassword || '123').then(res => {
-          if (!res.success) {
-            console.warn('Aviso: Usuário criado, mas falha ao enviar e-mail de boas-vindas:', res.error);
-          }
-        });
+    try {
+      const newUserCreated = createUser({
+        name: newUserName,
+        email: newUserEmail,
+        phone: newUserPhone,
+        password: newUserPassword,
+        role: newUserRole,
+        avatar: newUserRole === 'manager' 
+          ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150' 
+          : newUserRole === 'admin'
+          ? 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150'
+          : 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150',
+        managerId: newUserRole === 'broker' && newUserManagerId ? newUserManagerId : undefined,
+        creci: newUserCreci || undefined,
+        bio: newUserBio || undefined
       });
-    }
 
-    setNewUserName('');
-    setNewUserEmail('');
-    setNewUserPhone('');
-    setNewUserPassword('123');
-    setNewUserManagerId('');
-    setNewUserCreci('');
-    setNewUserBio('');
-    alert(`Usuário "${newUserName}" cadastrado com sucesso! Um e-mail de boas-vindas e instrução de acesso foi enviado para ${newUserEmail}.`);
+      setUsers(getUsers());
+
+      // Disparar e-mail de boas-vindas com dados de acesso e link da plataforma em segundo plano
+      if (newUserCreated) {
+        import('../../utils/emailService').then(({ sendWelcomeEmail }) => {
+          sendWelcomeEmail(newUserCreated, newUserPassword || '123').catch(err => {
+            console.warn('Aviso: Falha ao enviar e-mail de boas-vindas:', err);
+          });
+        });
+      }
+
+      alert(`Usuário "${newUserName}" cadastrado com sucesso no CRM! Um e-mail de boas-vindas foi enviado para ${newUserEmail}.`);
+
+      setNewUserName('');
+      setNewUserEmail('');
+      setNewUserPhone('');
+      setNewUserPassword('123');
+      setNewUserManagerId('');
+      setNewUserCreci('');
+      setNewUserBio('');
+    } catch (err: any) {
+      console.error('Erro ao cadastrar usuário:', err);
+      alert(`Erro ao cadastrar usuário: ${err.message || 'Falha inesperada.'}`);
+    } finally {
+      setIsCreatingUser(false);
+    }
   };
 
   const handleDeleteUser = (userId: string) => {
@@ -1548,9 +1558,17 @@ export default function Dashboard() {
 
                     <button
                       type="submit"
-                      className="w-full py-3.5 bg-[#3159C1] hover:bg-[#2348a8] text-white font-bold rounded-xl text-sm transition-all active:scale-95 shadow-lg"
+                      disabled={isCreatingUser}
+                      className="w-full py-3.5 bg-[#3159C1] hover:bg-[#2348a8] disabled:bg-slate-300 text-white font-bold rounded-xl text-sm transition-all active:scale-95 shadow-lg flex items-center justify-center gap-2"
                     >
-                      Salvar Usuário
+                      {isCreatingUser ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Cadastrando...
+                        </>
+                      ) : (
+                        'Salvar Usuário'
+                      )}
                     </button>
                   </form>
                 </div>
