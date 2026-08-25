@@ -80,33 +80,35 @@ export default function Login() {
 
     const userToLogin = targetUser;
 
-    // Simular autenticação
-    setTimeout(() => {
-      if (userToLogin) {
-        const defaultPass = userToLogin.role === 'admin' ? 'admin' : '123';
-        const expectedPassword = userToLogin.password || defaultPass;
-        const isCorrectPassword = password === expectedPassword;
+    if (userToLogin) {
+      const defaultPass = userToLogin.role === 'admin' ? 'admin' : '123';
+      const expectedPassword = userToLogin.password || defaultPass;
+      const isCorrectPassword = password === expectedPassword;
 
-        if (isCorrectPassword) {
-          if (userToLogin.role === 'broker') {
-            const now = new Date().toISOString();
-            updateUser(userToLogin.id, { status: 'online', lastOnlineAt: now });
-          }
-          sessionStorage.setItem('session_active', 'true');
-          sessionStorage.removeItem('was_online_before_unload');
-          localStorage.setItem('lider_active_broker_id', userToLogin.id);
-          router.push('/dashboard');
-        } else {
-          const maskPassword = (pass: string): string => {
-            if (!pass) return '';
-            if (pass.length <= 2) return pass[0] + '*'.repeat(pass.length - 1);
-            return pass[0] + '*'.repeat(pass.length - 2) + pass[pass.length - 1];
-          };
-          setError(`Senha incorreta! Dica da sua senha: "${maskPassword(expectedPassword)}".`);
-          setIsLoading(false);
+      if (isCorrectPassword) {
+        if (userToLogin.role === 'broker') {
+          const now = new Date().toISOString();
+          updateUser(userToLogin.id, { status: 'online', lastOnlineAt: now });
         }
+        sessionStorage.setItem('session_active', 'true');
+        sessionStorage.removeItem('was_online_before_unload');
+        localStorage.setItem('lider_active_broker_id', userToLogin.id);
+        
+        // Redirecionamento direto de alta prioridade
+        window.location.href = '/dashboard';
+      } else {
+        const maskPassword = (pass: string): string => {
+          if (!pass) return '';
+          if (pass.length <= 2) return pass[0] + '*'.repeat(pass.length - 1);
+          return pass[0] + '*'.repeat(pass.length - 2) + pass[pass.length - 1];
+        };
+        setError(`Senha incorreta! Dica da sua senha: "${maskPassword(expectedPassword)}".`);
+        setIsLoading(false);
       }
-    }, 1000);
+    } else {
+      setError('Usuário não encontrado.');
+      setIsLoading(false);
+    }
   };
 
   const currentUser = loginMode === 'select' 
