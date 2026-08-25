@@ -32,18 +32,28 @@ export default function LeadModal({ isOpen, onClose, propertyName, propertyBg }:
     }
   }, [isOpen]);
 
+  const [phoneError, setPhoneError] = useState('');
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !phone || isSubmitting) return;
+    setPhoneError('');
+
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (!name.trim()) return;
+    if (cleanPhone.length < 10 || cleanPhone.length > 13) {
+      setPhoneError('Insira um número de WhatsApp válido com DDD (ex: 81 99999-9999)');
+      return;
+    }
+    if (isSubmitting) return;
 
     setIsSubmitting(true);
 
     try {
       // Register lead using advanced routing
       const { lead, isDuplicate: duplicate } = registerLeadFromSite({
-        name,
-        phone,
-        email,
+        name: name.trim(),
+        phone: phone.trim(),
+        email: email.trim(),
         propertyName,
         propertyBg,
       });
@@ -155,9 +165,15 @@ export default function LeadModal({ isOpen, onClose, propertyName, propertyBg }:
                       required
                       placeholder="WhatsApp (ex: 81 99999-9999)"
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
+                      onChange={(e) => {
+                        setPhone(e.target.value);
+                        if (phoneError) setPhoneError('');
+                      }}
                       className="w-full pl-12 pr-4 py-4 rounded-2xl bg-gray-50 border border-gray-100 text-gray-800 placeholder-gray-400 font-medium focus:outline-none focus:ring-2 focus:ring-[#00A3FF] focus:bg-white transition-all"
                     />
+                    {phoneError && (
+                      <span className="text-xs text-red-500 font-bold block mt-1 px-2">{phoneError}</span>
+                    )}
                   </div>
 
                   {/* Email Input */}

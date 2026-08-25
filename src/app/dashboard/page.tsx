@@ -536,7 +536,8 @@ export default function Dashboard() {
     e.preventDefault();
     if (!newNote || !selectedLead) return;
 
-    const updated = addLeadNote(selectedLead.id, newNote);
+    const author = currentUser ? currentUser.name : undefined;
+    const updated = addLeadNote(selectedLead.id, newNote, author);
     setLeads(updated);
     setSelectedLead(updated.find(l => l.id === selectedLead.id) || null);
     setNewNote('');

@@ -749,12 +749,16 @@ export const updateLeadStatus = (leadId: string, newStatus: Lead['status']): Lea
   return leads;
 };
 
-export const addLeadNote = (leadId: string, note: string): Lead[] => {
+export const addLeadNote = (leadId: string, note: string, authorName?: string): Lead[] => {
+  const noteContent = authorName 
+    ? `[${authorName} - ${new Date().toLocaleString('pt-BR')}]: ${note}`
+    : note;
+
   const leads = getLeads().map(l => {
     if (l.id === leadId) {
       const updated: Lead = { 
         ...l, 
-        notes: [...l.notes, note],
+        notes: [...l.notes, noteContent],
         lastActivityAt: new Date().toISOString(),
         attendedAt: l.attendedAt || new Date().toISOString()
       };
