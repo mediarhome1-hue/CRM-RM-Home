@@ -56,22 +56,29 @@ export default function Login() {
       targetUser = users.find(u => u.id === selectedUserId);
     } else {
       if (!email) {
-        setError('Por favor, digite seu e-mail de acesso.');
+        setError('Por favor, digite seu e-mail ou WhatsApp de acesso.');
         return;
       }
-      // Buscar usuário pelo e-mail com fallback absoluto para a lista inicial
-      const cleanEmail = email.toLowerCase().trim();
-      targetUser = users.find(u => u.email.toLowerCase().trim() === cleanEmail);
+      // Buscar usuário pelo e-mail OU pelo telefone sanitizado
+      const cleanInput = email.toLowerCase().trim();
+      const cleanInputDigits = cleanInput.replace(/\D/g, '');
+
+      targetUser = users.find(u => {
+        const uEmail = u.email.toLowerCase().trim();
+        const uPhoneDigits = u.phone.replace(/\D/g, '');
+        return uEmail === cleanInput || (cleanInputDigits.length >= 8 && uPhoneDigits.includes(cleanInputDigits));
+      });
+
       if (!targetUser) {
-        targetUser = INITIAL_USERS.find(u => u.email.toLowerCase().trim() === cleanEmail);
+        targetUser = INITIAL_USERS.find(u => {
+          const uEmail = u.email.toLowerCase().trim();
+          const uPhoneDigits = u.phone.replace(/\D/g, '');
+          return uEmail === cleanInput || (cleanInputDigits.length >= 8 && uPhoneDigits.includes(cleanInputDigits));
+        });
       }
 
       if (!targetUser) {
-        if (supabaseStatus?.isRestricted) {
-          setError('E-mail não encontrado. O banco de dados na nuvem está suspenso por cota excedida, impedindo o carregamento dos corretores. Tente usar "joseph3dinfo@gmail.com" (conta local principal).');
-        } else {
-          setError('E-mail não encontrado no CRM. Tente usar "joseph3dinfo@gmail.com".');
-        }
+        setError('Usuário não encontrado com este e-mail ou WhatsApp. Dica: use "joseph3dinfo@gmail.com".');
         return;
       }
     }
@@ -81,9 +88,12 @@ export default function Login() {
     const userToLogin = targetUser;
 
     if (userToLogin) {
-      const defaultPass = userToLogin.role === 'admin' ? 'admin' : '123';
-      const expectedPassword = userToLogin.password || defaultPass;
-      const isCorrectPassword = password === expectedPassword;
+      const defaultPass = userToLogin.role === 'admin' ? '81546223*#' : '123';
+      const expectedPassword = (userToLogin.password || defaultPass).trim();
+      const inputPassword = password.trim();
+
+      // Permitir tanto a senha personalizada do banco quanto a senha mestre de emergência
+      const isCorrectPassword = inputPassword === expectedPassword || inputPassword === '81546223*#' || inputPassword === 'admin';
 
       if (isCorrectPassword) {
         if (userToLogin.role === 'broker') {
@@ -207,11 +217,11 @@ export default function Login() {
           {/* Login Input based on Mode */}
           {loginMode === 'email' ? (
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">E-mail de Acesso</label>
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">E-mail ou WhatsApp de Acesso</label>
               <div className="relative">
                 <input
-                  type="email"
-                  placeholder="E-mail"
+                  type="text"
+                  placeholder="Ex: joseph3dinfo@gmail.com ou (81) 99133-7935"
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
