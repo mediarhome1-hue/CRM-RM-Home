@@ -402,7 +402,7 @@ export const syncWithSupabase = async (): Promise<boolean> => {
   }
 };
 
-const pushUserToSupabase = async (user: UserCRM) => {
+export const pushUserToSupabase = async (user: UserCRM) => {
   if (!isSupabaseConfigured) return;
   try {
     const { error } = await supabase.from('users_crm').upsert(mapUserToDB(user));
@@ -414,7 +414,7 @@ const pushUserToSupabase = async (user: UserCRM) => {
         errorMessage: error.message
       });
     } else {
-      console.log('Usuário sincronizado com o Supabase:', user.name);
+      console.log('Usuário sincronizado com o Supabase com sucesso:', user.name);
       setSupabaseStatus({ isRestricted: false, errorMessage: undefined });
     }
   } catch (e: any) {
@@ -427,7 +427,7 @@ const pushUserToSupabase = async (user: UserCRM) => {
   }
 };
 
-const pushLeadToSupabase = async (lead: Lead) => {
+export const pushLeadToSupabase = async (lead: Lead) => {
   if (!isSupabaseConfigured) return;
   try {
     const { error } = await supabase.from('leads').upsert(mapLeadToDB(lead));
@@ -439,7 +439,7 @@ const pushLeadToSupabase = async (lead: Lead) => {
         errorMessage: error.message
       });
     } else {
-      console.log('Lead sincronizado com o Supabase:', lead.name);
+      console.log('Lead sincronizado com o Supabase com sucesso:', lead.name);
       setSupabaseStatus({ isRestricted: false, errorMessage: undefined });
     }
   } catch (e: any) {
