@@ -13,8 +13,8 @@ import {
   Camera, BadgeCheck, Lock, Bell, X, Eye, EyeOff, Send, MessageCircle, Menu, CheckSquare
 } from 'lucide-react';
 import { 
-  getUsers, createUser, updateUser, deleteUser, toggleUserStatus,
-  getLeads, saveLeads, addLeadManual, 
+  getUsers, createUser, updateUser, deleteUser, toggleUserStatus, pushUserToSupabase,
+  getLeads, saveLeads, addLeadManual, pushLeadToSupabase,
   updateLeadStatus, addLeadNote, addLeadTask, toggleLeadTask, deleteLead,
   runTransbordoCheck, reassignLead, logUserOffline,
   UserCRM, Lead, Task, UserRole, INITIAL_USERS, Message,
@@ -586,7 +586,7 @@ export default function Dashboard() {
     setSelectedLead(null);
   };
 
-  const handleAddLeadSubmit = (e: React.FormEvent) => {
+  const handleAddLeadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!addName || !addPhone || !currentUser) return;
 
@@ -597,7 +597,7 @@ export default function Dashboard() {
       ? currentUser.id 
       : (addBrokerId || currentUser.id);
 
-    addLeadManual({
+    const newCreatedLead = addLeadManual({
       name: addName,
       phone: addPhone,
       email: addEmail,
@@ -606,6 +606,7 @@ export default function Dashboard() {
       assignedBrokerId: assignedId
     });
 
+    await pushLeadToSupabase(newCreatedLead);
     setLeads(getLeads());
     setIsAddModalOpen(false);
     setAddName('');
@@ -616,7 +617,7 @@ export default function Dashboard() {
   const [isCreatingUser, setIsCreatingUser] = useState(false);
 
   // --- GESTÃO DE USUÁRIOS (DIREÇÃO) ---
-  const handleCreateUser = (e: React.FormEvent) => {
+  const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newUserName || !newUserEmail || !newUserPhone || isCreatingUser) return;
 
@@ -639,6 +640,8 @@ export default function Dashboard() {
         bio: newUserBio || undefined
       });
 
+      // Garantir persistencia e atualizar lista de usuarios
+      await pushUserToSupabase(newUserCreated);
       setUsers(getUsers());
 
       // Disparar e-mail de boas-vindas com dados de acesso e link da plataforma em segundo plano

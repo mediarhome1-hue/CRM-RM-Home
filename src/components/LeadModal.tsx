@@ -49,6 +49,7 @@ export default function LeadModal({ isOpen, onClose, propertyName, propertyBg }:
     setIsSubmitting(true);
 
     try {
+      const { pushLeadToSupabase } = await import('../utils/leadsStore');
       // Register lead using advanced routing
       const { lead, isDuplicate: duplicate } = registerLeadFromSite({
         name: name.trim(),
@@ -57,6 +58,9 @@ export default function LeadModal({ isOpen, onClose, propertyName, propertyBg }:
         propertyName,
         propertyBg,
       });
+
+      // Forçar envio assíncrono para garantir persistência imediata na nuvem
+      await pushLeadToSupabase(lead);
 
       // Find the broker assigned to this lead
       const brokers = getUsers();
