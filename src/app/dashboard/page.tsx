@@ -957,17 +957,30 @@ export default function Dashboard() {
 
   if (!currentUser) return null;
 
+  // Filtro de Corretor Responsável (Exclusivo para Gestores e Direção)
+  const [selectedBrokerFilter, setSelectedBrokerFilter] = useState<string>('all');
+
   // --- FILTRO DE LEADS CONFORME HIERARQUIA ---
   // Corretores: Apenas os seus próprios leads.
   // Gerentes: Leads atribuídos a si mesmo ou a corretores de sua equipe.
-  // Direção (Admin): Todos os leads do CRM.
+  // Direção (Admin): Todos os leads do CRM (ou filtrados por corretor específico).
   const getLeadsByRole = (): Lead[] => {
-    if (currentUser.role === 'admin') return leads;
-    if (currentUser.role === 'manager') {
+    let roleLeads: Lead[] = [];
+
+    if (currentUser.role === 'admin') {
+      roleLeads = leads;
+    } else if (currentUser.role === 'manager') {
       const myTeamBrokerIds = users.filter(u => u.managerId === currentUser.id).map(u => u.id);
-      return leads.filter(l => l.assignedBrokerId === currentUser.id || myTeamBrokerIds.includes(l.assignedBrokerId));
+      roleLeads = leads.filter(l => l.assignedBrokerId === currentUser.id || myTeamBrokerIds.includes(l.assignedBrokerId));
+    } else {
+      roleLeads = leads.filter(l => l.assignedBrokerId === currentUser.id);
     }
-    return leads.filter(l => l.assignedBrokerId === currentUser.id);
+
+    if (selectedBrokerFilter !== 'all') {
+      return roleLeads.filter(l => l.assignedBrokerId === selectedBrokerFilter);
+    }
+
+    return roleLeads;
   };
 
   // Ordenar por data decrescente (do mais recente para o mais antigo - FIFO)
@@ -1207,6 +1220,28 @@ export default function Dashboard() {
                     </motion.div>
                   )}
                 </AnimatePresence>
+              </div>
+            )}
+
+            {/* Filtro de Leads por Corretor (Direção e Gerência) */}
+            {(currentUser.role === 'admin' || currentUser.role === 'manager') && (activeTab === 'kanban' || activeTab === 'list') && (
+              <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-2xl border border-slate-200/80 text-slate-700 shadow-xs">
+                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider hidden lg:inline">Filtrar por Corretor:</span>
+                <select
+                  value={selectedBrokerFilter}
+                  onChange={(e) => setSelectedBrokerFilter(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-[#3159C1] focus:outline-none cursor-pointer py-1 pr-2 border-none focus:ring-0 max-w-[200px]"
+                >
+                  <option value="all" className="text-slate-800 bg-white font-semibold">⚡ Todos os Corretores ({leads.length})</option>
+                  {users.map(u => {
+                    const brokerLeadsCount = leads.filter(l => l.assignedBrokerId === u.id).length;
+                    return (
+                      <option key={u.id} value={u.id} className="text-slate-800 bg-white font-medium">
+                        {u.name} ({brokerLeadsCount} leads)
+                      </option>
+                    );
+                  })}
+                </select>
               </div>
             )}
 
