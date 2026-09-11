@@ -648,12 +648,15 @@ export const findExistingLead = (phone: string): Lead | null => {
 
 export const getNextOnlineBroker = (): UserCRM | null => {
   const users = getUsers();
-  const onlineBrokers = users.filter(u => u.role === 'broker' && u.status === 'online');
+  // 1. Filtrar corretores ativos (role === 'broker')
+  const brokers = users.filter(u => u.role === 'broker');
+  if (brokers.length === 0) return null;
 
-  if (onlineBrokers.length === 0) return null;
+  // 2. Dar preferencia aos corretores online no momento
+  const onlineBrokers = brokers.filter(u => u.status === 'online');
+  const targetPool = onlineBrokers.length > 0 ? onlineBrokers : brokers;
 
-  // Em vez de usar apenas o localStorage do cliente (que reinicia a fila para cada visitante),
-  // buscamos no histórico de leads quem foi o último corretor a receber atendimento
+  // 3. Determinar quem foi o ultimo corretor a receber um lead
   const leads = getLeads();
   let lastBrokerId = localStorage.getItem('last_assigned_broker_id');
 
@@ -666,16 +669,17 @@ export const getNextOnlineBroker = (): UserCRM | null => {
   }
 
   let nextIndex = 0;
-
   if (lastBrokerId) {
-    const lastIndex = onlineBrokers.findIndex(b => b.id === lastBrokerId);
+    const lastIndex = targetPool.findIndex(b => b.id === lastBrokerId);
     if (lastIndex !== -1) {
-      nextIndex = (lastIndex + 1) % onlineBrokers.length;
+      nextIndex = (lastIndex + 1) % targetPool.length;
     }
   }
 
-  const selectedBroker = onlineBrokers[nextIndex];
-  localStorage.setItem('last_assigned_broker_id', selectedBroker.id);
+  const selectedBroker = targetPool[nextIndex];
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('last_assigned_broker_id', selectedBroker.id);
+  }
   return selectedBroker;
 };
 
