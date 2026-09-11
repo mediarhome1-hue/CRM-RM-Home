@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LogOut, LayoutDashboard, Users, MessageSquare, BarChart3, 
-  Plus, Calendar, Mail, Phone, ChevronRight, FileText, 
+  Plus, Calendar, Mail, Phone, ChevronRight, ChevronLeft, FileText, 
   Sparkles, CheckCircle2, QrCode, ToggleLeft, ToggleRight,
   TrendingUp, Award, Clock, ArrowRight, ShieldCheck, Search, Trash2,
   Shield, UserCheck, AlertTriangle, RefreshCw, Layers, Edit, Check, User,
@@ -1317,7 +1317,7 @@ export default function Dashboard() {
                             
                             <h4 className="font-bold text-sm text-slate-800 group-hover:text-[#3159C1] transition-colors mb-2 line-clamp-1">{lead.name}</h4>
                             
-                            <div className="space-y-1 text-xs text-slate-500 font-medium mb-3">
+                             <div className="space-y-1 text-xs text-slate-500 font-medium mb-3">
                               <div className="flex items-center gap-1.5"><Phone size={12} className="text-[#3159C1]" /> {lead.phone}</div>
                               {currentUser.role !== 'broker' && (
                                 <div className="mt-2 text-[10px]" onClick={(e) => e.stopPropagation()}>
@@ -1336,9 +1336,55 @@ export default function Dashboard() {
                               )}
                             </div>
 
-                            <div className="pt-2 border-t border-slate-200/60 flex justify-between items-center text-[10px] text-[#3159C1] font-black tracking-wider">
-                              <span>VER DETALHES</span>
-                              <ChevronRight size={12} />
+                            {/* Controles de Mudança Rápida de Etapa (Avançar/Voltar Funil) */}
+                            <div className="mt-2 pt-2 border-t border-slate-200/60 flex items-center justify-between gap-1" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center gap-1 flex-1">
+                                {col.id !== 'new' && (
+                                  <button
+                                    type="button"
+                                    title="Voltar Etapa"
+                                    onClick={() => {
+                                      const statusKeys = STATUS_COLUMNS.map(c => c.id);
+                                      const currentIndex = statusKeys.indexOf(lead.status);
+                                      if (currentIndex > 0) {
+                                        handleLeadStatusChange(lead.id, statusKeys[currentIndex - 1]);
+                                      }
+                                    }}
+                                    className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded transition-colors"
+                                  >
+                                    <ChevronLeft size={14} />
+                                  </button>
+                                )}
+                                
+                                <select
+                                  value={lead.status}
+                                  onChange={(e) => handleLeadStatusChange(lead.id, e.target.value as Lead['status'])}
+                                  className="text-[10px] font-bold text-slate-700 bg-white border border-slate-200 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-[#3159C1] cursor-pointer flex-1 truncate"
+                                >
+                                  {STATUS_COLUMNS.map(c => (
+                                    <option key={c.id} value={c.id}>
+                                      {c.title.replace(' 🎉', '').replace(' ❌', '')}
+                                    </option>
+                                  ))}
+                                </select>
+
+                                {col.id !== 'closed' && col.id !== 'lost' && (
+                                  <button
+                                    type="button"
+                                    title="Avançar Etapa"
+                                    onClick={() => {
+                                      const statusKeys = STATUS_COLUMNS.map(c => c.id);
+                                      const currentIndex = statusKeys.indexOf(lead.status);
+                                      if (currentIndex < statusKeys.length - 1) {
+                                        handleLeadStatusChange(lead.id, statusKeys[currentIndex + 1]);
+                                      }
+                                    }}
+                                    className="p-1 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded font-bold transition-colors flex items-center gap-0.5 text-[10px]"
+                                  >
+                                    <ChevronRight size={14} />
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           </motion.div>
                         );
