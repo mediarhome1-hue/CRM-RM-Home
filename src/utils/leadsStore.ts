@@ -372,7 +372,7 @@ export const syncWithSupabase = async (): Promise<boolean> => {
       }
     }
 
-    // 2. Sincronizar Leads (Buscando ordenado do mais recente para o mais antigo)
+    // 2. Sincronizar Leads com Mesclagem Inteligente Bidirecional (Last-Write-Wins por Lead)
     const { data: leadsData, error: leadsErr } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
     if (leadsErr) {
       console.error('Erro ao sincronizar leads do Supabase:', leadsErr.message, leadsErr.details);
@@ -383,8 +383,40 @@ export const syncWithSupabase = async (): Promise<boolean> => {
         errorMessage: leadsErr.message
       });
     } else if (leadsData) {
-      const mappedLeads = leadsData.map(mapLeadFromDB);
-      localStorage.setItem('lider_leads', JSON.stringify(mappedLeads));
+      const dbLeads = leadsData.map(mapLeadFromDB);
+      const localLeadsStr = localStorage.getItem('lider_leads');
+      const localLeads: Lead[] = localLeadsStr ? JSON.parse(localLeadsStr) : [];
+
+      // Dicionario indexado para mesclagem de maior atividade (Last-Write-Wins)
+      const mergedMap = new Map<string, Lead>();
+
+      // 1. Inserir todos os do banco
+      dbLeads.forEach(l => mergedMap.set(l.id, l));
+
+      // 2. Mesclar com os locais: se o local tiver lastActivityAt mais recente, mantem local e envia alteracao pendente pro Supabase
+      localLeads.forEach(localL => {
+        const dbL = mergedMap.get(localL.id);
+        if (!dbL) {
+          // Lead existe local mas nao no banco -> enviar pro Supabase
+          mergedMap.set(localL.id, localL);
+          pushLeadToSupabase(localL);
+        } else {
+          const localTime = new Date(localL.lastActivityAt || localL.createdAt).getTime();
+          const dbTime = new Date(dbL.lastActivityAt || dbL.createdAt).getTime();
+
+          if (localTime > dbTime) {
+            // Alteracao local e mais recente que a do banco -> dar push pro Supabase
+            mergedMap.set(localL.id, localL);
+            pushLeadToSupabase(localL);
+          }
+        }
+      });
+
+      const mergedLeads = Array.from(mergedMap.values()).sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+
+      localStorage.setItem('lider_leads', JSON.stringify(mergedLeads));
       if (success) {
         setSupabaseStatus({ isRestricted: false, errorMessage: undefined });
       }
