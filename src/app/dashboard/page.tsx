@@ -63,6 +63,9 @@ export default function Dashboard() {
   const [supabaseStatus, setSupabaseStatus] = useState<SupabaseStatus | null>(null);
   const [isOnlineDropdownOpen, setIsOnlineDropdownOpen] = useState(false);
   const onlineDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Filtro de Corretor Responsável (Exclusivo para Gestores e Direção)
+  const [selectedBrokerFilter, setSelectedBrokerFilter] = useState<string>('all');
   
   // Navigation
   const [activeTab, setActiveTab] = useState<'kanban' | 'list' | 'whatsapp' | 'analytics' | 'users' | 'flow' | 'profile'>('kanban');
@@ -956,9 +959,6 @@ export default function Dashboard() {
   };
 
   if (!currentUser) return null;
-
-  // Filtro de Corretor Responsável (Exclusivo para Gestores e Direção)
-  const [selectedBrokerFilter, setSelectedBrokerFilter] = useState<string>('all');
 
   // --- FILTRO DE LEADS CONFORME HIERARQUIA ---
   // Corretores: Apenas os seus próprios leads.
