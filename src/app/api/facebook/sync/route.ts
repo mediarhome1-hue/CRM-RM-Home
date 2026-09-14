@@ -11,7 +11,9 @@ export async function GET(req: Request) {
     const pageAccessToken = process.env.FACEBOOK_PAGE_ACCESS_TOKEN || process.env.FACEBOOK_ACCESS_TOKEN;
 
     if (!pageAccessToken) {
-      return NextResponse.json({ error: 'Token de acesso do Facebook não configurado.' }, { status: 500 });
+      return NextResponse.json({ 
+        error: 'O token do Facebook (FACEBOOK_PAGE_ACCESS_TOKEN) não está configurado nas variáveis de ambiente da Vercel. Por favor, insira o Token da Página no painel da Vercel.' 
+      }, { status: 400 });
     }
 
     // 1. Tentar buscar as contas do usuário (/me/accounts) ou dados diretos do nó (/me)

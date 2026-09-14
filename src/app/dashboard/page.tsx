@@ -128,17 +128,22 @@ export default function Dashboard() {
     setIsSyncingMeta(true);
     try {
       const res = await fetch('/api/facebook/sync');
-      const data = await res.json();
-      if (res.ok && data.success) {
+      const data = await res.json().catch(() => null);
+
+      if (res.ok && data?.success) {
         alert(`Sincronização Meta Ads efetuada com sucesso!\n\n${data.message}`);
         const { syncWithSupabase } = await import('../../utils/leadsStore');
         await syncWithSupabase();
         setLeads(getLeads());
       } else {
-        alert(`Não foi possível sincronizar no momento:\n\n${data.error || 'Erro desconhecido.'}`);
+        const errorMsg = data?.error || (res.status === 500 
+          ? 'Token do Facebook (FACEBOOK_PAGE_ACCESS_TOKEN) não configurado na Vercel.' 
+          : 'Não foi possível consultar os anúncios da Meta no momento.');
+        alert(`Aviso de Integração Meta Ads:\n\n${errorMsg}\n\n👉 Para resolver: Verifique se a variável FACEBOOK_PAGE_ACCESS_TOKEN está cadastrada no painel da Vercel.`);
       }
     } catch (err: any) {
-      alert(`Falha de conexão ao sincronizar com Meta: ${err.message}`);
+      const msg = err?.message || String(err);
+      alert(`Status da Integração Meta Ads:\n\n${msg.includes('pattern') ? 'Variável de ambiente FACEBOOK_PAGE_ACCESS_TOKEN ausente ou pendente de configuração na Vercel.' : msg}`);
     } finally {
       setIsSyncingMeta(false);
     }
