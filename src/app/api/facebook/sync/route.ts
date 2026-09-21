@@ -120,12 +120,14 @@ export async function GET(req: Request) {
 
           const cleanPhone = phone.replace(/\D/g, '');
           const matchedLead = existingLeads?.find(l => {
-            const cleanLeadPhone = l.phone.replace(/\D/g, '');
-            return (
-              cleanPhone.endsWith(cleanLeadPhone) || 
-              cleanLeadPhone.endsWith(cleanPhone) ||
-              cleanPhone === cleanLeadPhone
-            );
+            const cleanLeadPhone = (l.phone || '').replace(/\D/g, '');
+            if (!cleanPhone || !cleanLeadPhone) return false;
+
+            if (cleanPhone === cleanLeadPhone) return true;
+            if (cleanPhone.length >= 8 && cleanLeadPhone.length >= 8) {
+              return cleanPhone.endsWith(cleanLeadPhone) || cleanLeadPhone.endsWith(cleanPhone);
+            }
+            return false;
           });
 
           if (matchedLead) {
