@@ -147,20 +147,30 @@ export async function GET(req: Request) {
 
             importedDetails.push({ name, phone, status: 'atualizado' });
           } else {
-            // Atribuir corretor online ou rotativo
+            // Atribuir corretor online ou rotativo sequencial via banco
             const { data: users } = await supabase.from('users_crm').select('*');
-            const onlineBrokers = users?.filter(u => u.role === 'broker' && u.status === 'online') || [];
+            const brokers = users?.filter(u => u.role === 'broker') || [];
+            const onlineBrokers = brokers.filter(u => u.status === 'online');
+            const targetPool = onlineBrokers.length > 0 ? onlineBrokers : (brokers.length > 0 ? brokers : users || []);
             let assignedBrokerId = 'diretoria-lider';
 
-            if (onlineBrokers.length > 0) {
-              assignedBrokerId = onlineBrokers[Math.floor(Math.random() * onlineBrokers.length)].id;
-            } else {
-              const allBrokers = users?.filter(u => u.role === 'broker') || [];
-              if (allBrokers.length > 0) {
-                assignedBrokerId = allBrokers[Math.floor(Math.random() * allBrokers.length)].id;
-              } else if (users && users.length > 0) {
-                assignedBrokerId = users[0].id;
+            if (targetPool.length > 0) {
+              const { data: lastLeads } = await supabase
+                .from('leads')
+                .select('assigned_broker_id')
+                .order('created_at', { ascending: false })
+                .limit(5);
+
+              const lastAssignedId = lastLeads?.find(l => l.assigned_broker_id)?.assigned_broker_id;
+              let nextIndex = 0;
+
+              if (lastAssignedId) {
+                const lastIndex = targetPool.findIndex(u => u.id === lastAssignedId);
+                if (lastIndex !== -1) {
+                  nextIndex = (lastIndex + 1) % targetPool.length;
+                }
               }
+              assignedBrokerId = targetPool[nextIndex].id;
             }
 
             const newLead = {
