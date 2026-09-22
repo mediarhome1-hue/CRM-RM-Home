@@ -776,7 +776,8 @@ export const updateLeadStatus = (leadId: string, newStatus: Lead['status']): Lea
         lastActivityAt: new Date().toISOString(),
         attendedAt: isAttended ? new Date().toISOString() : l.attendedAt
       };
-      pushLeadToSupabase(updated);
+      // Envio em segundo plano (nao bloqueia a interface nem causa delay no clique)
+      pushLeadToSupabase(updated).catch(err => console.error('Erro assíncrono pushLeadToSupabase:', err));
       return updated;
     }
     return l;

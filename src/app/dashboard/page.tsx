@@ -297,7 +297,7 @@ export default function Dashboard() {
         })
         .subscribe();
 
-      // Polling de segurança para sincronização em nuvem sem sobrescrever edições em andamento no formulário do perfil
+      // Polling de segurança em segundo plano (a cada 15 segundos para não causar lag nem atraso nas interações dos botões)
       pollingInterval = setInterval(async () => {
         const { syncWithSupabase } = await import('../../utils/leadsStore');
         const success = await syncWithSupabase();
@@ -312,7 +312,7 @@ export default function Dashboard() {
             setCurrentUser(updatedUser);
           }
         }
-      }, 2000);
+      }, 15000);
     }
 
     return () => {
