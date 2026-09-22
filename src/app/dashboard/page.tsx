@@ -10,7 +10,8 @@ import {
   Sparkles, CheckCircle2, QrCode, ToggleLeft, ToggleRight,
   TrendingUp, Award, Clock, ArrowRight, ShieldCheck, Search, Trash2,
   Shield, UserCheck, AlertTriangle, RefreshCw, Layers, Edit, Check, User,
-  Camera, BadgeCheck, Lock, Bell, X, Eye, EyeOff, Send, MessageCircle, Menu, CheckSquare
+  Camera, BadgeCheck, Lock, Bell, X, Eye, EyeOff, Send, MessageCircle, Menu, CheckSquare,
+  Upload, FileSpreadsheet
 } from 'lucide-react';
 import { 
   getUsers, createUser, updateUser, deleteUser, toggleUserStatus, pushUserToSupabase,
@@ -74,13 +75,17 @@ export default function Dashboard() {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [newNote, setNewNote] = useState('');
   
-  // Add Lead Modal State
+  // Add Lead Modal & CSV Import State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [addMode, setAddMode] = useState<'manual' | 'csv'>('manual');
   const [addName, setAddName] = useState('');
   const [addPhone, setAddPhone] = useState('');
   const [addEmail, setAddEmail] = useState('');
   const [addPropName, setAddPropName] = useState('Valle Encantado');
   const [addBrokerId, setAddBrokerId] = useState('');
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [isImportingCsv, setIsImportingCsv] = useState(false);
+  const [csvImportResult, setCsvImportResult] = useState<{ total: number, imported: number, errors: number } | null>(null);
 
   // User Management Form State
   const [newUserName, setNewUserName] = useState('');
@@ -620,6 +625,98 @@ export default function Dashboard() {
     setAddName('');
     setAddPhone('');
     setAddEmail('');
+  };
+
+  // --- IMPORTAÇÃO EM MASSA DE LEADS VIA PLANILHA CSV (DIREÇÃO) ---
+  const handleCsvImportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!csvFile || isImportingCsv || !currentUser) return;
+
+    setIsImportingCsv(true);
+    setCsvImportResult(null);
+
+    try {
+      const text = await csvFile.text();
+      const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+
+      if (lines.length <= 1) {
+        alert('A planilha CSV parece estar vazia ou conter apenas o cabeçalho.');
+        setIsImportingCsv(false);
+        return;
+      }
+
+      // Identificar separador (, ou ;)
+      const firstLine = lines[0];
+      const delimiter = firstLine.includes(';') ? ';' : ',';
+
+      const headers = firstLine.split(delimiter).map(h => h.toLowerCase().trim().replace(/^"|"$/g, ''));
+
+      // Mapear índices das colunas (nome, telefone/whatsapp, email, empreendimento)
+      const nameIdx = headers.findIndex(h => h.includes('nome') || h.includes('name') || h.includes('cliente'));
+      const phoneIdx = headers.findIndex(h => h.includes('telefone') || h.includes('phone') || h.includes('whats') || h.includes('celular') || h.includes('contato') || h.includes('fone'));
+      const emailIdx = headers.findIndex(h => h.includes('email') || h.includes('mail'));
+      const propIdx = headers.findIndex(h => h.includes('imovel') || h.includes('empreendimento') || h.includes('propriedade') || h.includes('produto') || h.includes('interesse'));
+
+      if (phoneIdx === -1 && nameIdx === -1) {
+        alert('Não foi possível identificar colunas válidas na planilha. Certifique-se de que há colunas chamadas "Nome" e "Telefone" ou "WhatsApp".');
+        setIsImportingCsv(false);
+        return;
+      }
+
+      let importedCount = 0;
+      let errorCount = 0;
+
+      // Percorrer cada linha de dados
+      for (let i = 1; i < lines.length; i++) {
+        const row = lines[i].split(delimiter).map(cell => cell.trim().replace(/^"|"$/g, ''));
+        if (row.length === 0 || row.every(c => c === '')) continue;
+
+        const rowName = nameIdx !== -1 ? row[nameIdx] || 'Lead CSV' : 'Lead CSV';
+        const rowPhone = phoneIdx !== -1 ? row[phoneIdx] || '' : (row[0] || '');
+        const rowEmail = emailIdx !== -1 ? row[emailIdx] || '' : '';
+        const rowProp = propIdx !== -1 ? row[propIdx] || addPropName : addPropName;
+
+        const cleanPhone = rowPhone.replace(/\D/g, '');
+        if (!cleanPhone || cleanPhone.length < 8) {
+          errorCount++;
+          continue;
+        }
+
+        const propertyBg = rowProp.toLowerCase().includes('valle') 
+          ? 'bg-[#317073]' 
+          : rowProp.toLowerCase().includes('bela') 
+          ? 'bg-[#1b7a5e]' 
+          : 'bg-[#4ab9f8]';
+
+        const assignedId = currentUser.role === 'broker' 
+          ? currentUser.id 
+          : (addBrokerId || currentUser.id);
+
+        const newLead = addLeadManual({
+          name: rowName,
+          phone: rowPhone,
+          email: rowEmail,
+          propertyName: rowProp,
+          propertyBg,
+          assignedBrokerId: assignedId
+        });
+
+        await pushLeadToSupabase(newLead);
+        importedCount++;
+      }
+
+      setLeads(getLeads());
+      setCsvImportResult({ total: lines.length - 1, imported: importedCount, errors: errorCount });
+      alert(`Importação concluída!\n\n✅ ${importedCount} lead(s) importado(s) com sucesso.\n⚠️ ${errorCount} linha(s) ignorada(s) por falta de telefone válido.`);
+
+      setCsvFile(null);
+      setIsAddModalOpen(false);
+    } catch (err: any) {
+      console.error('Erro ao importar CSV:', err);
+      alert(`Erro ao processar planilha CSV: ${err.message || 'Formato de arquivo inválido.'}`);
+    } finally {
+      setIsImportingCsv(false);
+    }
   };
 
   const [isCreatingUser, setIsCreatingUser] = useState(false);
@@ -3023,60 +3120,188 @@ export default function Dashboard() {
               exit={{ scale: 0.95, opacity: 0 }}
               className="bg-white rounded-3xl p-8 max-w-[480px] w-full border border-slate-200 relative z-10 shadow-2xl"
             >
-              <h3 className="text-xl font-black text-slate-800 mb-1">Cadastrar Lead Manualmente</h3>
-              <p className="text-slate-500 text-xs font-medium mb-6">Os dados do lead serão criados diretamente na fila do CRM.</p>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-black text-slate-800">Adicionar Leads ao CRM</h3>
+                <button 
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
 
-              <form onSubmit={handleAddLeadSubmit} className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-600 block">Nome Completo</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ex: Vanessa Carvalho"
-                    value={addName}
-                    onChange={(e) => setAddName(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#3159C1]"
-                  />
+              {/* ABAS DE MODO (MANUAL OU PLANILHA CSV) PARA GESTORES E DIREÇÃO */}
+              {(currentUser.role === 'admin' || currentUser.role === 'manager') && (
+                <div className="flex bg-slate-100 p-1 rounded-2xl mb-6 border border-slate-200/60">
+                  <button
+                    type="button"
+                    onClick={() => setAddMode('manual')}
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                      addMode === 'manual' 
+                        ? 'bg-white text-[#3159C1] shadow-xs' 
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    <User size={14} /> Novo Lead Único
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAddMode('csv')}
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                      addMode === 'csv' 
+                        ? 'bg-white text-[#3159C1] shadow-xs' 
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    <FileSpreadsheet size={14} /> Importar Planilha (.CSV)
+                  </button>
                 </div>
+              )}
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-600 block">WhatsApp</label>
-                  <input
-                    type="tel"
-                    required
-                    placeholder="Ex: (81) 99999-9999"
-                    value={addPhone}
-                    onChange={(e) => setAddPhone(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#3159C1]"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-600 block">E-mail (Opcional)</label>
-                  <input
-                    type="email"
-                    placeholder="Ex: vanessa@email.com"
-                    value={addEmail}
-                    onChange={(e) => setAddEmail(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#3159C1]"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
+              {addMode === 'manual' ? (
+                <form onSubmit={handleAddLeadSubmit} className="space-y-4">
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-600 block">Empreendimento</label>
-                    <select
-                      value={addPropName}
-                      onChange={(e) => setAddPropName(e.target.value)}
-                      className="w-full px-3 py-3 bg-gray-50 border border-slate-200 rounded-xl text-sm focus:outline-none cursor-pointer"
-                    >
-                      <option value="Valle Encantado">Valle Encantado</option>
-                      <option value="Bela Vista">Bela Vista</option>
-                      <option value="Conquista Paulista">Conquista Paulista</option>
-                    </select>
+                    <label className="text-xs font-bold text-slate-600 block">Nome Completo</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ex: Vanessa Carvalho"
+                      value={addName}
+                      onChange={(e) => setAddName(e.target.value)}
+                      className="w-full px-4 py-3 bg-gray-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#3159C1]"
+                    />
                   </div>
 
-                  {currentUser.role !== 'broker' && (
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-600 block">WhatsApp</label>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="Ex: (81) 99999-9999"
+                      value={addPhone}
+                      onChange={(e) => setAddPhone(e.target.value)}
+                      className="w-full px-4 py-3 bg-gray-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#3159C1]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-600 block">E-mail (Opcional)</label>
+                    <input
+                      type="email"
+                      placeholder="Ex: vanessa@email.com"
+                      value={addEmail}
+                      onChange={(e) => setAddEmail(e.target.value)}
+                      className="w-full px-4 py-3 bg-gray-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-[#3159C1]"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-600 block">Empreendimento</label>
+                      <select
+                        value={addPropName}
+                        onChange={(e) => setAddPropName(e.target.value)}
+                        className="w-full px-3 py-3 bg-gray-50 border border-slate-200 rounded-xl text-sm focus:outline-none cursor-pointer"
+                      >
+                        <option value="Valle Encantado">Valle Encantado</option>
+                        <option value="Bela Vista">Bela Vista</option>
+                        <option value="Conquista Paulista">Conquista Paulista</option>
+                      </select>
+                    </div>
+
+                    {currentUser.role !== 'broker' && (
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-600 block">Atribuir a Corretor</label>
+                        <select
+                          value={addBrokerId}
+                          onChange={(e) => setAddBrokerId(e.target.value)}
+                          className="w-full px-3 py-3 bg-gray-50 border border-slate-200 rounded-xl text-sm focus:outline-none cursor-pointer"
+                        >
+                          <option value="">Selecione...</option>
+                          {users.filter(u => u.role === 'broker').map(b => (
+                            <option key={b.id} value={b.id}>{b.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddModalOpen(false)}
+                      className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs uppercase tracking-wider transition-all"
+                    >
+                      Voltar
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 py-3 bg-[#3159C1] hover:bg-[#2348a8] text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-lg"
+                    >
+                      Confirmar
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                /* FORMULÁRIO DE IMPORTAÇÃO DE PLANILHA CSV */
+                <form onSubmit={handleCsvImportSubmit} className="space-y-5">
+                  <div className="bg-blue-50/50 border border-blue-200/80 rounded-2xl p-4 space-y-2">
+                    <div className="flex items-center gap-2 text-[#3159C1] font-bold text-xs">
+                      <FileSpreadsheet size={16} />
+                      <span>Formato da Planilha (.CSV)</span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      Sua planilha deve conter pelo menos as colunas <strong>Nome</strong> e <strong>Telefone</strong> (ou WhatsApp). Colunas de <strong>E-mail</strong> e <strong>Empreendimento</strong> são opcionais.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-700 block">Selecione o arquivo .CSV</label>
+                    <div className="border-2 border-dashed border-slate-300 hover:border-[#3159C1] rounded-2xl p-6 text-center bg-slate-50/50 transition-all cursor-pointer relative group">
+                      <input
+                        type="file"
+                        accept=".csv,text/csv,application/vnd.ms-excel"
+                        required
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            setCsvFile(e.target.files[0]);
+                          }
+                        }}
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      />
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <div className="p-3 bg-[#3159C1]/10 text-[#3159C1] rounded-2xl group-hover:scale-110 transition-transform">
+                          <Upload size={24} />
+                        </div>
+                        {csvFile ? (
+                          <div>
+                            <span className="text-xs font-bold text-slate-800 block truncate max-w-[300px]">{csvFile.name}</span>
+                            <span className="text-[10px] text-green-600 font-bold block mt-0.5">✓ Arquivo carregado ({(csvFile.size / 1024).toFixed(1)} KB)</span>
+                          </div>
+                        ) : (
+                          <div>
+                            <span className="text-xs font-bold text-slate-700 block">Clique ou arraste o arquivo .CSV aqui</span>
+                            <span className="text-[10px] text-slate-400 block mt-0.5">Aceita planilhas exportadas do Excel, Google Sheets ou Meta Ads</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-600 block">Empreendimento Padrão</label>
+                      <select
+                        value={addPropName}
+                        onChange={(e) => setAddPropName(e.target.value)}
+                        className="w-full px-3 py-3 bg-gray-50 border border-slate-200 rounded-xl text-sm focus:outline-none cursor-pointer"
+                      >
+                        <option value="Valle Encantado">Valle Encantado</option>
+                        <option value="Bela Vista">Bela Vista</option>
+                        <option value="Conquista Paulista">Conquista Paulista</option>
+                      </select>
+                    </div>
+
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-slate-600 block">Atribuir a Corretor</label>
                       <select
@@ -3084,31 +3309,38 @@ export default function Dashboard() {
                         onChange={(e) => setAddBrokerId(e.target.value)}
                         className="w-full px-3 py-3 bg-gray-50 border border-slate-200 rounded-xl text-sm focus:outline-none cursor-pointer"
                       >
-                        <option value="">Selecione...</option>
+                        <option value="">Atribuição Sequencial (Fila)</option>
                         {users.filter(u => u.role === 'broker').map(b => (
                           <option key={b.id} value={b.id}>{b.name}</option>
                         ))}
                       </select>
                     </div>
-                  )}
-                </div>
+                  </div>
 
-                <div className="flex gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setIsAddModalOpen(false)}
-                    className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs uppercase tracking-wider transition-all"
-                  >
-                    Voltar
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 py-3 bg-[#3159C1] hover:bg-[#2348a8] text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-lg"
-                  >
-                    Confirmar
-                  </button>
-                </div>
-              </form>
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddModalOpen(false)}
+                      className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs uppercase tracking-wider transition-all"
+                    >
+                      Voltar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={!csvFile || isImportingCsv}
+                      className="flex-1 py-3 bg-[#3159C1] hover:bg-[#2348a8] text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {isImportingCsv ? (
+                        <>
+                          <RefreshCw size={14} className="animate-spin" /> Importando...
+                        </>
+                      ) : (
+                        'Processar Planilha'
+                      )}
+                    </button>
+                  </div>
+                </form>
+              )}
             </motion.div>
           </div>
         )}
