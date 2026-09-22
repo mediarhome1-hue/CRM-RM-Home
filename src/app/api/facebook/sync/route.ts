@@ -16,49 +16,24 @@ export async function GET(req: Request) {
       }, { status: 400 });
     }
 
-    // 1. Tentar buscar as contas de página associadas (/me/accounts) ou a própria entidade /me
+    // 1. Priorizar o ID da página configurado nas variáveis (FACEBOOK_PAGE_ID) ou fallback para busca via /me/accounts
     let pages: any[] = [];
-    const meRes = await fetch(`https://graph.facebook.com/v20.0/me/accounts?access_token=${pageAccessToken}`);
-    
-    if (meRes.ok) {
-      const meData = await meRes.json();
-      pages = meData.data || [];
-    }
-    
-    if (pages.length === 0) {
-      // Testar consultar o próprio nó /me
-      const directMeRes = await fetch(`https://graph.facebook.com/v20.0/me?fields=id,name,access_token&access_token=${pageAccessToken}`);
-      if (directMeRes.ok) {
-        const directMeData = await directMeRes.json();
-        if (directMeData.id) {
-          pages = [{ id: directMeData.id, name: directMeData.name, access_token: pageAccessToken }];
-        }
-      }
-    }
+    const envPageId = process.env.FACEBOOK_PAGE_ID || process.env.FB_PAGE_ID || process.env.NEXT_PUBLIC_FACEBOOK_PAGE_ID || '648684245476381';
 
-    // 2. Se a Meta não retornar a página automaticamente via token de usuário, usamos o ID da Página ou da Conta de Anúncios das variáveis
-    const envPageId = process.env.FACEBOOK_PAGE_ID || process.env.FB_PAGE_ID || process.env.NEXT_PUBLIC_FACEBOOK_PAGE_ID;
-    if (envPageId && !pages.some(p => p.id === envPageId)) {
+    if (envPageId) {
       pages.push({ id: envPageId, access_token: pageAccessToken });
     }
 
-    // 3. Fallback adicional por Conta de Anúncios (act_<AD_ACCOUNT_ID>) se configurado
-    const envAdAccountId = process.env.FACEBOOK_AD_ACCOUNT_ID || process.env.FB_AD_ACCOUNT_ID;
-    if (envAdAccountId) {
-      const formattedAdAcc = envAdAccountId.startsWith('act_') ? envAdAccountId : `act_${envAdAccountId}`;
-      const adAccFormsRes = await fetch(`https://graph.facebook.com/v20.0/${formattedAdAcc}/leadgen_forms?access_token=${pageAccessToken}`);
-      if (adAccFormsRes.ok) {
-        const adAccFormsData = await adAccFormsRes.json();
-        if (adAccFormsData.data && adAccFormsData.data.length > 0) {
-          pages.push({ id: formattedAdAcc, isAdAccount: true, access_token: pageAccessToken });
+    const meRes = await fetch(`https://graph.facebook.com/v20.0/me/accounts?access_token=${pageAccessToken}`);
+    if (meRes.ok) {
+      const meData = await meRes.json();
+      if (meData.data && meData.data.length > 0) {
+        for (const p of meData.data) {
+          if (!pages.some(existing => existing.id === p.id)) {
+            pages.push({ id: p.id, name: p.name, access_token: p.access_token || pageAccessToken });
+          }
         }
       }
-    }
-
-    if (pages.length === 0) {
-      return NextResponse.json({ 
-        error: 'O token configurado (FACEBOOK_PAGE_ACCESS_TOKEN) não retornou nenhuma Página do Facebook associada. Adicione a variável FACEBOOK_PAGE_ID na Vercel com o ID numérico da sua Página do Facebook.' 
-      }, { status: 400 });
     }
 
     let importedLeadsCount = 0;

@@ -144,7 +144,7 @@ export default function Dashboard() {
         const errorMsg = data?.error || (res.status === 500 
           ? 'Token do Facebook (FACEBOOK_PAGE_ACCESS_TOKEN) não configurado na Vercel.' 
           : 'Não foi possível consultar os anúncios da Meta no momento.');
-        alert(`Aviso de Integração Meta Ads:\n\n${errorMsg}\n\n👉 Para resolver: Verifique se a variável FACEBOOK_PAGE_ACCESS_TOKEN está cadastrada no painel da Vercel.`);
+        alert(`Aviso de Integração Meta Ads:\n\n${errorMsg}`);
       }
     } catch (err: any) {
       const msg = err?.message || String(err);
