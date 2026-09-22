@@ -645,36 +645,53 @@ export default function Dashboard() {
         return;
       }
 
-      // Identificar separador (, ou ;)
+      // Identificar separador (, ou ; ou \t) considerando aspas e cabecalhos
       const firstLine = lines[0];
-      const delimiter = firstLine.includes(';') ? ';' : ',';
+      let delimiter = ',';
+      if (firstLine.includes(';') && !firstLine.includes(',')) delimiter = ';';
+      else if (firstLine.includes('\t')) delimiter = '\t';
+      else if (firstLine.split(';').length > firstLine.split(',').length) delimiter = ';';
 
-      const headers = firstLine.split(delimiter).map(h => h.toLowerCase().trim().replace(/^"|"$/g, ''));
+      // Função utilitária para dividir CSV respeitando aspas
+      const parseCsvLine = (line: string, delim: string): string[] => {
+        const regex = new RegExp(`(?:^|${delim.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})(?:"([^"]*(?:""[^"]*)*)"|([^"${delim}]*))`, 'g');
+        const matches: string[] = [];
+        let match;
+        while ((match = regex.exec(line)) !== null) {
+          const val = match[1] !== undefined ? match[1].replace(/""/g, '"') : match[2];
+          matches.push((val || '').trim());
+        }
+        return matches;
+      };
+
+      const headers = parseCsvLine(firstLine, delimiter).map(h => h.toLowerCase().trim());
 
       // Mapear índices das colunas (nome, telefone/whatsapp, email, empreendimento)
-      const nameIdx = headers.findIndex(h => h.includes('nome') || h.includes('name') || h.includes('cliente'));
-      const phoneIdx = headers.findIndex(h => h.includes('telefone') || h.includes('phone') || h.includes('whats') || h.includes('celular') || h.includes('contato') || h.includes('fone'));
-      const emailIdx = headers.findIndex(h => h.includes('email') || h.includes('mail'));
-      const propIdx = headers.findIndex(h => h.includes('imovel') || h.includes('empreendimento') || h.includes('propriedade') || h.includes('produto') || h.includes('interesse'));
+      let nameIdx = headers.findIndex(h => h.includes('nome') || h.includes('name') || h.includes('cliente') || h.includes('lead'));
+      let phoneIdx = headers.findIndex(h => h.includes('telefone') || h.includes('phone') || h.includes('whats') || h.includes('celular') || h.includes('contato') || h.includes('fone') || h.includes('mobile'));
+      let emailIdx = headers.findIndex(h => h.includes('email') || h.includes('mail'));
+      let propIdx = headers.findIndex(h => h.includes('imovel') || h.includes('empreendimento') || h.includes('propriedade') || h.includes('produto') || h.includes('interesse') || h.includes('midia') || h.includes('origem'));
 
+      // Se não achou colunas nomeadas, tenta assumir ordem padrão (Col 1: Nome, Col 2: Telefone)
       if (phoneIdx === -1 && nameIdx === -1) {
-        alert('Não foi possível identificar colunas válidas na planilha. Certifique-se de que há colunas chamadas "Nome" e "Telefone" ou "WhatsApp".');
-        setIsImportingCsv(false);
-        return;
+        nameIdx = 0;
+        phoneIdx = 1;
       }
 
       let importedCount = 0;
       let errorCount = 0;
 
+      const { getNextOnlineBroker } = await import('../../utils/leadsStore');
+
       // Percorrer cada linha de dados
       for (let i = 1; i < lines.length; i++) {
-        const row = lines[i].split(delimiter).map(cell => cell.trim().replace(/^"|"$/g, ''));
+        const row = parseCsvLine(lines[i], delimiter);
         if (row.length === 0 || row.every(c => c === '')) continue;
 
-        const rowName = nameIdx !== -1 ? row[nameIdx] || 'Lead CSV' : 'Lead CSV';
-        const rowPhone = phoneIdx !== -1 ? row[phoneIdx] || '' : (row[0] || '');
-        const rowEmail = emailIdx !== -1 ? row[emailIdx] || '' : '';
-        const rowProp = propIdx !== -1 ? row[propIdx] || addPropName : addPropName;
+        const rowName = (nameIdx !== -1 && row[nameIdx]) ? row[nameIdx] : 'Lead CSV';
+        const rowPhone = (phoneIdx !== -1 && row[phoneIdx]) ? row[phoneIdx] : (row[0] || '');
+        const rowEmail = (emailIdx !== -1 && row[emailIdx]) ? row[emailIdx] : '';
+        const rowProp = (propIdx !== -1 && row[propIdx]) ? row[propIdx] : addPropName;
 
         const cleanPhone = rowPhone.replace(/\D/g, '');
         if (!cleanPhone || cleanPhone.length < 8) {
@@ -688,9 +705,15 @@ export default function Dashboard() {
           ? 'bg-[#1b7a5e]' 
           : 'bg-[#4ab9f8]';
 
-        const assignedId = currentUser.role === 'broker' 
+        let assignedId = currentUser.role === 'broker' 
           ? currentUser.id 
-          : (addBrokerId || currentUser.id);
+          : addBrokerId;
+
+        if (!assignedId) {
+          // Atribuição Sequencial (Round-Robin) entre a equipe
+          const nextBroker = getNextOnlineBroker();
+          assignedId = nextBroker ? nextBroker.id : currentUser.id;
+        }
 
         const newLead = addLeadManual({
           name: rowName,
@@ -707,7 +730,7 @@ export default function Dashboard() {
 
       setLeads(getLeads());
       setCsvImportResult({ total: lines.length - 1, imported: importedCount, errors: errorCount });
-      alert(`Importação concluída!\n\n✅ ${importedCount} lead(s) importado(s) com sucesso.\n⚠️ ${errorCount} linha(s) ignorada(s) por falta de telefone válido.`);
+      alert(`Importação concluída com sucesso!\n\n✅ ${importedCount} lead(s) importado(s) e inserido(s) no CRM.\n⚠️ ${errorCount} linha(s) ignorada(s) por falta de telefone numérico válido.`);
 
       setCsvFile(null);
       setIsAddModalOpen(false);
