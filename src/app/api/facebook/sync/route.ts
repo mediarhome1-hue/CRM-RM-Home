@@ -16,15 +16,17 @@ export async function GET(req: Request) {
       }, { status: 400 });
     }
 
-    // 1. Tentar buscar as contas do usuário (/me/accounts) ou dados diretos do nó (/me)
+    // 1. Tentar buscar as contas de página associadas (/me/accounts) ou a própria entidade /me
     let pages: any[] = [];
     const meRes = await fetch(`https://graph.facebook.com/v20.0/me/accounts?access_token=${pageAccessToken}`);
     
     if (meRes.ok) {
       const meData = await meRes.json();
       pages = meData.data || [];
-    } else {
-      // Se /me/accounts falhar (ex: token de página direto ou permissão granular restrita), testamos consultar a própria entidade /me
+    }
+    
+    if (pages.length === 0) {
+      // Testar consultar o próprio nó /me
       const directMeRes = await fetch(`https://graph.facebook.com/v20.0/me?fields=id,name,access_token&access_token=${pageAccessToken}`);
       if (directMeRes.ok) {
         const directMeData = await directMeRes.json();
@@ -34,29 +36,47 @@ export async function GET(req: Request) {
       }
     }
 
-    if (pages.length === 0) {
-      // Tentar consultar os formulários (leadgen_forms) direto de um PAGE_ID ou AD_ACCOUNT se houver configurado nas variáveis de ambiente
-      const envPageId = process.env.FACEBOOK_PAGE_ID || process.env.FB_PAGE_ID;
-      if (envPageId) {
-        pages = [{ id: envPageId, access_token: pageAccessToken }];
-      } else {
-        return NextResponse.json({ 
-          error: 'O token configurado (FACEBOOK_PAGE_ACCESS_TOKEN) expirou ou não tem permissão para listar /me/accounts. Atualize o Token de Acesso da Página no painel da Meta/Vercel.' 
-        }, { status: 400 });
+    // 2. Se a Meta não retornar a página automaticamente via token de usuário, usamos o ID da Página ou da Conta de Anúncios das variáveis
+    const envPageId = process.env.FACEBOOK_PAGE_ID || process.env.FB_PAGE_ID || process.env.NEXT_PUBLIC_FACEBOOK_PAGE_ID;
+    if (envPageId && !pages.some(p => p.id === envPageId)) {
+      pages.push({ id: envPageId, access_token: pageAccessToken });
+    }
+
+    // 3. Fallback adicional por Conta de Anúncios (act_<AD_ACCOUNT_ID>) se configurado
+    const envAdAccountId = process.env.FACEBOOK_AD_ACCOUNT_ID || process.env.FB_AD_ACCOUNT_ID;
+    if (envAdAccountId) {
+      const formattedAdAcc = envAdAccountId.startsWith('act_') ? envAdAccountId : `act_${envAdAccountId}`;
+      const adAccFormsRes = await fetch(`https://graph.facebook.com/v20.0/${formattedAdAcc}/leadgen_forms?access_token=${pageAccessToken}`);
+      if (adAccFormsRes.ok) {
+        const adAccFormsData = await adAccFormsRes.json();
+        if (adAccFormsData.data && adAccFormsData.data.length > 0) {
+          pages.push({ id: formattedAdAcc, isAdAccount: true, access_token: pageAccessToken });
+        }
       }
+    }
+
+    if (pages.length === 0) {
+      return NextResponse.json({ 
+        error: 'O token configurado (FACEBOOK_PAGE_ACCESS_TOKEN) não retornou nenhuma Página do Facebook associada. Adicione a variável FACEBOOK_PAGE_ID na Vercel com o ID numérico da sua Página do Facebook.' 
+      }, { status: 400 });
     }
 
     let importedLeadsCount = 0;
     const importedDetails: any[] = [];
+    const metaErrors: string[] = [];
 
-    // Buscar formulários e leads de cada página associada
+    // Buscar formulários e leads de cada entidade associada
     for (const page of pages) {
       const pageId = page.id;
       const pageToken = page.access_token || pageAccessToken;
 
-      // Buscar os formulários de cadastro da página
+      // Buscar os formulários de cadastro da página/conta de anúncio
       const formsRes = await fetch(`https://graph.facebook.com/v20.0/${pageId}/leadgen_forms?access_token=${pageToken}`);
-      if (!formsRes.ok) continue;
+      if (!formsRes.ok) {
+        const errJson = await formsRes.json().catch(() => null);
+        metaErrors.push(`Página/Entidade ${pageId}: ${errJson?.error?.message || formsRes.statusText}`);
+        continue;
+      }
 
       const formsData = await formsRes.json();
       const forms = formsData.data || [];
@@ -197,9 +217,18 @@ export async function GET(req: Request) {
       }
     }
 
+    if (importedLeadsCount === 0 && metaErrors.length > 0) {
+      return NextResponse.json({
+        success: false,
+        error: `Meta API retornou erro ao consultar a página:\n${metaErrors.join('\n')}\n\nVerifique se o token de acesso (FACEBOOK_PAGE_ACCESS_TOKEN) possui a permissão 'leads_retrieval' ou se o ID da Página (FACEBOOK_PAGE_ID) está correto na Vercel.`
+      }, { status: 400 });
+    }
+
     return NextResponse.json({
       success: true,
-      message: `Sincronização concluída! ${importedLeadsCount} novo(s) lead(s) importado(s).`,
+      message: importedLeadsCount > 0
+        ? `Sincronização concluída com sucesso! ${importedLeadsCount} novo(s) lead(s) importado(s) e atribuído(s).`
+        : `Sincronização concluída! Todos os leads dos formulários ativos já estão atualizados no CRM.`,
       details: importedDetails
     });
 
