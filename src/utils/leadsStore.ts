@@ -28,7 +28,7 @@ export interface SupabaseStatus {
   lastChecked?: string;
 }
 
-const CRM_CACHE_VERSION = 'v1.0.5';
+const CRM_CACHE_VERSION = 'v2.0.0';
 
 let currentSupabaseStatus: SupabaseStatus = {
   isConfigured: isSupabaseConfigured,
@@ -394,8 +394,14 @@ export const syncWithSupabase = async (): Promise<boolean> => {
       });
     } else if (leadsData) {
       const dbLeads = leadsData.map(mapLeadFromDB);
-      // O Supabase é a fonte oficial da verdade: atualiza o cache local estritamente com os dados da nuvem
-      localStorage.setItem('lider_leads', JSON.stringify(dbLeads));
+      // O Supabase é a fonte oficial da verdade: atualiza o cache local se houver espaço
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('lider_leads', JSON.stringify(dbLeads));
+        } catch {
+          console.warn('LocalStorage quota limit reached in syncWithSupabase, continuing in-memory.');
+        }
+      }
       if (success) {
         setSupabaseStatus({ isRestricted: false, errorMessage: undefined });
       }
@@ -421,9 +427,16 @@ export const fetchFreshLeads = async (): Promise<Lead[]> => {
     if (!error && data) {
       const fresh = data.map(mapLeadFromDB);
       if (typeof window !== 'undefined') {
-        localStorage.setItem('lider_leads', JSON.stringify(fresh));
+        try {
+          localStorage.setItem('lider_leads', JSON.stringify(fresh));
+        } catch {
+          console.warn('LocalStorage quota limit reached in fetchFreshLeads, maintaining in-memory leads.');
+        }
       }
       return fresh;
+    }
+    if (error) {
+      console.error('Erro retornado pelo Supabase ao buscar leads:', error.message);
     }
   } catch (err) {
     console.error('Erro ao buscar leads atualizados do Supabase:', err);
@@ -439,9 +452,16 @@ export const fetchFreshUsers = async (): Promise<UserCRM[]> => {
       const fresh = data.map(mapUserFromDB);
       const cleanUsers = fresh.filter(u => u && u.id);
       if (typeof window !== 'undefined') {
-        localStorage.setItem('lider_crm_users', JSON.stringify(cleanUsers));
+        try {
+          localStorage.setItem('lider_crm_users', JSON.stringify(cleanUsers));
+        } catch {
+          console.warn('LocalStorage quota limit reached in fetchFreshUsers.');
+        }
       }
       return cleanUsers;
+    }
+    if (error) {
+      console.error('Erro retornado pelo Supabase ao buscar usuários:', error.message);
     }
   } catch (err) {
     console.error('Erro ao buscar usuários atualizados do Supabase:', err);
@@ -648,9 +668,28 @@ export const logUserOffline = (userId: string): UserCRM | null => {
 
 export const getLeads = (): Lead[] => {
   if (typeof window === 'undefined') return DEFAULT_LEADS;
+
+  // Invalidação por versão de deploy para limpar caches legados/corrompidos
+  const storedVersion = localStorage.getItem('lider_crm_cache_version');
+  if (storedVersion !== CRM_CACHE_VERSION) {
+    try {
+      localStorage.removeItem('lider_leads');
+      localStorage.setItem('lider_crm_cache_version', CRM_CACHE_VERSION);
+    } catch {}
+    return DEFAULT_LEADS;
+  }
+
   const stored = localStorage.getItem('lider_leads');
-  if (stored) return JSON.parse(stored);
-  localStorage.setItem('lider_leads', JSON.stringify(DEFAULT_LEADS));
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    } catch {
+      localStorage.removeItem('lider_leads');
+    }
+  }
   
   if (isSupabaseConfigured) syncWithSupabase();
   return DEFAULT_LEADS;
@@ -658,7 +697,11 @@ export const getLeads = (): Lead[] => {
 
 export const saveLeads = (leads: Lead[]): void => {
   if (typeof window === 'undefined') return;
-  localStorage.setItem('lider_leads', JSON.stringify(leads));
+  try {
+    localStorage.setItem('lider_leads', JSON.stringify(leads));
+  } catch (e) {
+    console.warn('LocalStorage quota limit reached in saveLeads.');
+  }
 };
 
 // --- DISTRIBUIÇÃO SEQUENCIAL E DE-DUPLICAÇÃO ---

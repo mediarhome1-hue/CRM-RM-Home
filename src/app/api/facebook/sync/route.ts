@@ -223,9 +223,12 @@ export async function GET() {
           });
 
           if (matchedLead) {
-            // Atualizar lead existente mantendo o corretor já atribuído
+            // Atualizar lead existente mantendo o histórico de notas limpo e sem duplicações infinitas
+            const priorNotes = (matchedLead.notes || []).filter(
+              (n: string) => typeof n === 'string' && !n.includes('Sincronização via Meta') && !n.includes('Sincronização forçada')
+            );
             const updatedNotes = [
-              ...(matchedLead.notes || []),
+              ...priorNotes,
               `Sincronização via Meta Ads (Formulário: ${formName}, Lead ID: ${leadgenId}) em ${new Date().toLocaleString('pt-BR')}.`
             ];
 
