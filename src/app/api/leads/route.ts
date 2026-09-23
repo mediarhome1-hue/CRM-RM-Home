@@ -4,6 +4,8 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl || 'https://placeholder-url.supabase.co', supabaseKey || 'placeholder-key');
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function POST(req: Request) {
   try {
@@ -108,8 +110,14 @@ export async function POST(req: Request) {
     }
 
     // 4. Seleção Justa via Round-Robin de Corretores
-    const brokers = users?.filter(u => u.role === 'broker') || [];
-    const onlineBrokers = brokers.filter(u => u.status === 'online');
+    const brokers = (users || []).filter((u: any) => u.role === 'broker');
+    const nowMs = Date.now();
+    const onlineBrokers = brokers.filter((u: any) => {
+      if (u.status !== 'online') return false;
+      if (!u.last_online_at) return false;
+      const lastActive = new Date(u.last_online_at).getTime();
+      return (nowMs - lastActive) <= 60000;
+    });
     const targetPool = onlineBrokers.length > 0 ? onlineBrokers : (brokers.length > 0 ? brokers : users || []);
 
     const { data: lastLeads } = await supabase
@@ -121,7 +129,7 @@ export async function POST(req: Request) {
     const lastAssignedId = lastLeads?.find(l => l.assigned_broker_id)?.assigned_broker_id;
     let nextIndex = 0;
     if (lastAssignedId && targetPool.length > 0) {
-      const lastIndex = targetPool.findIndex(u => u.id === lastAssignedId);
+      const lastIndex = targetPool.findIndex((u: any) => u.id === lastAssignedId);
       if (lastIndex !== -1) {
         nextIndex = (lastIndex + 1) % targetPool.length;
       }

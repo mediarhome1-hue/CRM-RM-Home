@@ -93,13 +93,14 @@ export default function Login() {
       const isCorrectPassword = inputPassword === expectedPassword || inputPassword === '81546223*#' || inputPassword === 'admin';
 
       if (isCorrectPassword) {
-        if (userToLogin.role === 'broker') {
-          const now = new Date().toISOString();
-          updateUser(userToLogin.id, { status: 'online', lastOnlineAt: now });
-        }
+        const now = new Date().toISOString();
+        updateUser(userToLogin.id, { status: 'online', lastOnlineAt: now });
+
         sessionStorage.setItem('session_active', 'true');
+        sessionStorage.setItem('lider_active_broker_id', userToLogin.id);
         sessionStorage.removeItem('was_online_before_unload');
-        localStorage.setItem('lider_active_broker_id', userToLogin.id);
+        // Limpar armazenamento persistente para que fechar o navegador deslogue automaticamente
+        localStorage.removeItem('lider_active_broker_id');
         
         // Redirecionamento direto de alta prioridade
         window.location.href = '/dashboard';

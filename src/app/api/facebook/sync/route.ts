@@ -4,6 +4,8 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl || 'https://placeholder-url.supabase.co', supabaseKey || 'placeholder-key');
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 // Rota de Sincronização / Re-fetch forçado dos últimos leads criados no Meta
 export async function GET() {
@@ -70,7 +72,13 @@ export async function GET() {
     // 2. Carregar dados de usuários e estado do Round-Robin UMA ÚNICA VEZ fora dos loops
     const { data: users } = await supabase.from('users_crm').select('*');
     const brokers = users?.filter(u => u.role === 'broker') || [];
-    const onlineBrokers = brokers.filter(u => u.status === 'online');
+    const nowMs = Date.now();
+    const onlineBrokers = brokers.filter(u => {
+      if (u.status !== 'online') return false;
+      if (!u.last_online_at) return false;
+      const lastActive = new Date(u.last_online_at).getTime();
+      return (nowMs - lastActive) <= 60000;
+    });
     const targetPool = onlineBrokers.length > 0 ? onlineBrokers : (brokers.length > 0 ? brokers : users || []);
 
     const { data: lastLeads } = await supabase
@@ -169,7 +177,7 @@ export async function GET() {
           }
 
           if (!name) name = 'Lead Facebook';
-          if (!phone) continue;
+          if (!phone || phone.includes('dummy') || name.includes('dummy')) continue;
 
           const cleanPhone = phone.replace(/\D/g, '');
           const matchedLead = existingLeads?.find(l => {

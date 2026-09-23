@@ -60,6 +60,18 @@ export const setSupabaseStatus = (status: Partial<SupabaseStatus>) => {
   }
 };
 
+/**
+ * Validação precisa de presença: corretor só é considerado online se estiver com
+ * status 'online' E tiver emitido batimento (heartbeat) nos últimos 60 segundos.
+ */
+export const isUserActiveOnline = (user?: UserCRM | null, windowMs = 60000): boolean => {
+  if (!user || user.status !== 'online') return false;
+  if (!user.lastOnlineAt) return false;
+  const lastActive = new Date(user.lastOnlineAt).getTime();
+  if (isNaN(lastActive)) return false;
+  return (Date.now() - lastActive) <= windowMs;
+};
+
 
 export interface Task {
   id: string;
@@ -260,7 +272,7 @@ const mapLeadToDB = (l: Lead) => ({
   attended_at: l.attendedAt || null
 });
 
-const mapLeadFromDB = (row: any): Lead => ({
+export const mapLeadFromDB = (row: any): Lead => ({
   id: row.id,
   name: row.name,
   phone: row.phone,
@@ -427,8 +439,7 @@ export const fetchFreshUsers = async (): Promise<UserCRM[]> => {
     const { data, error } = await supabase.from('users_crm').select('*');
     if (!error && data) {
       const fresh = data.map(mapUserFromDB);
-      const validOfficialIds = ['diretoria-lider', 'daiany-martins', 'matheus-souto', 'samira-martins', 'izabel-cristina', 'amaro-bispo', 'etiene-maria', 'edson-santos'];
-      const cleanUsers = fresh.filter(u => validOfficialIds.includes(u.id) || u.id.startsWith('user-'));
+      const cleanUsers = fresh.filter(u => u && u.id);
       if (typeof window !== 'undefined') {
         localStorage.setItem('lider_crm_users', JSON.stringify(cleanUsers));
       }

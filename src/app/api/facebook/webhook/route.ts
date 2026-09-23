@@ -4,6 +4,8 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl || 'https://placeholder-url.supabase.co', supabaseKey || 'placeholder-key');
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 // Cache em memória na instância serverless para acelerar consultas e evitar requisições repetidas ao Meta
 const pageTokensCache = new Map<string, string>();
@@ -116,7 +118,13 @@ export async function POST(req: Request) {
     }
 
     const brokers = users?.filter(u => u.role === 'broker') || [];
-    const onlineBrokers = brokers.filter(u => u.status === 'online');
+    const nowMs = Date.now();
+    const onlineBrokers = brokers.filter(u => {
+      if (u.status !== 'online') return false;
+      if (!u.last_online_at) return false;
+      const lastActive = new Date(u.last_online_at).getTime();
+      return (nowMs - lastActive) <= 60000;
+    });
     const targetPool = onlineBrokers.length > 0 ? onlineBrokers : (brokers.length > 0 ? brokers : users || []);
 
     const { data: lastLeads } = await supabase
@@ -194,9 +202,9 @@ export async function POST(req: Request) {
       }
 
       if (!name) name = 'Lead Facebook';
-      if (!phone) {
-        console.warn(`[Facebook Webhook] Lead ${leadgenId} recebido sem telefone válido. Ignorado.`);
-        processedResults.push({ leadgenId, error: 'Sem telefone' });
+      if (!phone || phone.includes('dummy') || name.includes('dummy')) {
+        console.warn(`[Facebook Webhook] Lead ${leadgenId} de teste dummy ignorado para evitar poluição do banco.`);
+        processedResults.push({ leadgenId, ignored: 'Lead de teste dummy' });
         continue;
       }
 

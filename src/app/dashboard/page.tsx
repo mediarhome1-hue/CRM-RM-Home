@@ -17,7 +17,7 @@ import {
   getUsers, createUser, updateUser, deleteUser, toggleUserStatus, pushUserToSupabase,
   getLeads, saveLeads, addLeadManual, pushLeadToSupabase,
   updateLeadStatus, addLeadNote, addLeadTask, toggleLeadTask, deleteLead,
-  runTransbordoCheck, reassignLead, logUserOffline,
+  runTransbordoCheck, reassignLead, logUserOffline, isUserActiveOnline,
   UserCRM, Lead, Task, UserRole, INITIAL_USERS, Message,
   getSupabaseStatus, SupabaseStatus
 } from '../../utils/leadsStore';
@@ -188,8 +188,19 @@ export default function Dashboard() {
   const [transbordoResults, setTransbordoResults] = useState<{ count: number, details: string[] } | null>(null);
 
   useEffect(() => {
-    // Proteger rota
-    const userId = localStorage.getItem('lider_active_broker_id');
+    // Proteger rota: ler do sessionStorage para que ao fechar o navegador/aba deslogue automaticamente
+    let userId = typeof window !== 'undefined' ? sessionStorage.getItem('lider_active_broker_id') : null;
+    
+    // Migração de transição caso ainda exista em localStorage
+    if (!userId && typeof window !== 'undefined') {
+      const legacyId = localStorage.getItem('lider_active_broker_id');
+      if (legacyId) {
+        userId = legacyId;
+        sessionStorage.setItem('lider_active_broker_id', legacyId);
+        localStorage.removeItem('lider_active_broker_id');
+      }
+    }
+
     setSupabaseStatus(getSupabaseStatus());
     if (!userId) {
       router.push('/login');
@@ -207,6 +218,7 @@ export default function Dashboard() {
     }
 
     if (!user) {
+      sessionStorage.removeItem('lider_active_broker_id');
       localStorage.removeItem('lider_active_broker_id');
       router.push('/login');
       return;
@@ -301,7 +313,19 @@ export default function Dashboard() {
         .channel("leads-realtime-crm")
         .on("postgres_changes", { event: "*", schema: "public", table: "leads" }, async (payload) => {
           console.log("[Realtime] Leads atualizados no Supabase:", payload.eventType);
-          const { fetchFreshLeads } = await import("../../utils/leadsStore");
+          const { fetchFreshLeads, mapLeadFromDB } = await import("../../utils/leadsStore");
+          if (payload.eventType === 'INSERT' && payload.new) {
+            const newLead = mapLeadFromDB(payload.new);
+            setLeads(prev => {
+              if (prev.some(l => l.id === newLead.id)) return prev;
+              return [newLead, ...prev];
+            });
+          } else if (payload.eventType === 'UPDATE' && payload.new) {
+            const updated = mapLeadFromDB(payload.new);
+            setLeads(prev => prev.map(l => l.id === updated.id ? updated : l));
+          } else if (payload.eventType === 'DELETE' && payload.old) {
+            setLeads(prev => prev.filter(l => l.id !== payload.old.id));
+          }
           const freshLeads = await fetchFreshLeads();
           setLeads(freshLeads);
         })
@@ -326,6 +350,34 @@ export default function Dashboard() {
       }, 3000);
     }
 
+    // 4. Sincronização imediata ao focar janela ou alternar abas (vital para paridade imediata no Safari / iOS)
+    const handleVisibilityOrFocus = async () => {
+      if (document.visibilityState === 'visible') {
+        const activeId = sessionStorage.getItem('lider_active_broker_id');
+        if (activeId && isSupabaseConfigured) {
+          supabase
+            .from('users_crm')
+            .update({ last_online_at: new Date().toISOString(), status: 'online' })
+            .eq('id', activeId)
+            .then();
+        }
+        const { fetchFreshLeads, fetchFreshUsers } = await import("../../utils/leadsStore");
+        const [freshUsers, freshLeads] = await Promise.all([
+          fetchFreshUsers(),
+          fetchFreshLeads()
+        ]);
+        setUsers(freshUsers);
+        setLeads(freshLeads);
+        if (userId) {
+          const updatedUser = freshUsers.find(u => u.id === userId);
+          if (updatedUser) setCurrentUser(updatedUser);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+    window.addEventListener('focus', handleVisibilityOrFocus);
+
     return () => {
       if (usersChannel) {
         supabase.removeChannel(usersChannel);
@@ -336,13 +388,15 @@ export default function Dashboard() {
       if (pollingInterval) {
         clearInterval(pollingInterval);
       }
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
     };
   }, [router]);
 
   // Interceptar beforeunload para marcar o corretor offline e acumular o tempo online no banco
   useEffect(() => {
     const handleSetUserOffline = () => {
-      const userId = localStorage.getItem('lider_active_broker_id');
+      const userId = sessionStorage.getItem('lider_active_broker_id') || localStorage.getItem('lider_active_broker_id');
       if (!userId) return;
 
       const storedUsers = localStorage.getItem('lider_crm_users');
@@ -414,14 +468,21 @@ export default function Dashboard() {
     window.addEventListener('pagehide', handleSetUserOffline);
     window.addEventListener('offline', handleSetUserOffline);
 
-    // Heartbeat: se ficar sem internet ou inativo, atualiza estado de presença no Supabase a cada 30 segundos
-    const heartbeatInterval = setInterval(() => {
-      if (currentUser && currentUser.role === 'broker' && currentUser.status === 'online') {
-        if (!navigator.onLine) {
-          handleSetUserOffline();
+    // Heartbeat Ativo: a cada 15 segundos, atualiza o timestamp de presença no Supabase
+    const heartbeatInterval = setInterval(async () => {
+      const activeId = sessionStorage.getItem('lider_active_broker_id') || localStorage.getItem('lider_active_broker_id');
+      if (activeId && !document.hidden && navigator.onLine) {
+        const now = new Date().toISOString();
+        if (isSupabaseConfigured) {
+          await supabase
+            .from('users_crm')
+            .update({ last_online_at: now, status: 'online' })
+            .eq('id', activeId);
         }
+      } else if (!navigator.onLine) {
+        handleSetUserOffline();
       }
-    }, 30000);
+    }, 15000);
 
     return () => {
       window.removeEventListener('beforeunload', handleSetUserOffline);
@@ -515,12 +576,13 @@ export default function Dashboard() {
   }, [leads, selectedLead]);
 
   const handleLogout = () => {
-    if (currentUser && currentUser.role === 'broker') {
+    if (currentUser) {
       logUserOffline(currentUser.id);
       localStorage.removeItem(`broker_manual_offline_${currentUser.id}`);
     }
     sessionStorage.removeItem('session_active');
     sessionStorage.removeItem('was_online_before_unload');
+    sessionStorage.removeItem('lider_active_broker_id');
     localStorage.removeItem('lider_active_broker_id');
     router.push('/login');
   };
@@ -1317,8 +1379,8 @@ export default function Dashboard() {
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                   </span>
                   <span className="text-[10px] font-black tracking-wider uppercase flex items-center gap-1.5">
-                    {users.filter(u => u.role === 'broker' && u.status === 'online').length} 
-                    <span>{users.filter(u => u.role === 'broker' && u.status === 'online').length === 1 ? 'Corretor Online' : 'Corretores Online'}</span>
+                    {users.filter(u => u.role === 'broker' && isUserActiveOnline(u)).length} 
+                    <span>{users.filter(u => u.role === 'broker' && isUserActiveOnline(u)).length === 1 ? 'Corretor Online' : 'Corretores Online'}</span>
                   </span>
                 </button>
 
@@ -1333,12 +1395,12 @@ export default function Dashboard() {
                       <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 pb-2 border-b border-slate-100 flex items-center justify-between">
                         <span>Corretores Ativos</span>
                         <span className="bg-green-500/10 text-green-600 px-2 py-0.5 rounded-full text-[9px] font-black">
-                          {users.filter(u => u.role === 'broker' && u.status === 'online').length}
+                          {users.filter(u => u.role === 'broker' && isUserActiveOnline(u)).length}
                         </span>
                       </h4>
                       <div className="space-y-2.5 max-h-48 overflow-y-auto">
-                        {users.filter(u => u.role === 'broker' && u.status === 'online').length > 0 ? (
-                          users.filter(u => u.role === 'broker' && u.status === 'online').map(b => (
+                        {users.filter(u => u.role === 'broker' && isUserActiveOnline(u)).length > 0 ? (
+                          users.filter(u => u.role === 'broker' && isUserActiveOnline(u)).map(b => (
                             <div key={b.id} className="flex items-center gap-3">
                               <img src={b.avatar} alt={b.name} className="w-8 h-8 rounded-full object-cover border border-green-500/25" />
                               <div className="overflow-hidden">
@@ -1839,9 +1901,9 @@ export default function Dashboard() {
                         <div className="flex items-center gap-2">
                           {u.role === 'broker' && (
                             <span className={`text-[10px] font-black px-2 py-1 rounded-full ${
-                              u.status === 'online' ? 'bg-green-500/15 text-green-600' : 'bg-slate-100 text-slate-500'
+                              isUserActiveOnline(u) ? 'bg-green-500/15 text-green-600' : 'bg-slate-100 text-slate-500'
                             }`}>
-                              {u.status === 'online' ? '🟢 ONLINE' : '🔴 OFFLINE'}
+                              {isUserActiveOnline(u) ? '🟢 ONLINE' : '🔴 OFFLINE'}
                             </span>
                           )}
 
