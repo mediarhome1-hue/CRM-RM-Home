@@ -6,50 +6,110 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl || 'https://placeholder-url.supabase.co', supabaseKey || 'placeholder-key');
 
 // Rota de Sincronização / Re-fetch forçado dos últimos leads criados no Meta
-export async function GET(req: Request) {
+export async function GET() {
   try {
-    const pageAccessToken = process.env.FACEBOOK_PAGE_ACCESS_TOKEN || process.env.FACEBOOK_ACCESS_TOKEN;
+    const rawToken = process.env.FACEBOOK_PAGE_ACCESS_TOKEN || process.env.FACEBOOK_ACCESS_TOKEN;
 
-    if (!pageAccessToken) {
+    if (!rawToken) {
       return NextResponse.json({ 
-        error: 'O token do Facebook (FACEBOOK_PAGE_ACCESS_TOKEN) não está configurado nas variáveis de ambiente da Vercel. Por favor, insira o Token da Página no painel da Vercel.' 
+        error: 'O token do Facebook (FACEBOOK_PAGE_ACCESS_TOKEN) não está configurado nas variáveis de ambiente da Vercel. Por favor, insira o Token no painel da Vercel.' 
       }, { status: 400 });
     }
 
-    // 1. Priorizar o ID da página configurado nas variáveis (FACEBOOK_PAGE_ID) ou fallback para busca via /me/accounts
-    let pages: any[] = [];
     const envPageId = process.env.FACEBOOK_PAGE_ID || process.env.FB_PAGE_ID || process.env.NEXT_PUBLIC_FACEBOOK_PAGE_ID || '648684245476381';
 
-    if (envPageId) {
-      pages.push({ id: envPageId, access_token: pageAccessToken });
-    }
+    // 1. Resolução e Descoberta Inteligente de Páginas e Page Access Tokens
+    // O Meta exige Page Access Token para os endpoints /{pageId}/leadgen_forms e /{formId}/leads.
+    // Se o usuário passou um User Token ou System User Token, obtemos automaticamente o token da página via /me/accounts ou /{pageId}.
+    const pages: Array<{ id: string; name?: string; access_token: string }> = [];
 
-    const meRes = await fetch(`https://graph.facebook.com/v20.0/me/accounts?access_token=${pageAccessToken}`);
-    if (meRes.ok) {
-      const meData = await meRes.json();
-      if (meData.data && meData.data.length > 0) {
-        for (const p of meData.data) {
-          if (!pages.some(existing => existing.id === p.id)) {
-            pages.push({ id: p.id, name: p.name, access_token: p.access_token || pageAccessToken });
+    // Tentar obter a lista de páginas e seus respectivos Page Access Tokens via /me/accounts
+    try {
+      const meRes = await fetch(`https://graph.facebook.com/v20.0/me/accounts?access_token=${rawToken}`);
+      if (meRes.ok) {
+        const meData = await meRes.json();
+        if (meData.data && Array.isArray(meData.data)) {
+          for (const p of meData.data) {
+            if (p.id && p.access_token) {
+              pages.push({ id: p.id, name: p.name, access_token: p.access_token });
+            }
           }
         }
       }
+    } catch (err) {
+      console.warn('[Meta Sync] Aviso ao consultar /me/accounts:', err);
     }
+
+    // Se o ID da página principal não foi incluído ou não tem token específico, buscar diretamente na Graph API
+    if (envPageId && !pages.some(p => p.id === envPageId)) {
+      let resolvedToken = rawToken;
+      try {
+        const pageRes = await fetch(`https://graph.facebook.com/v20.0/${envPageId}?fields=access_token,name&access_token=${rawToken}`);
+        if (pageRes.ok) {
+          const pageData = await pageRes.json();
+          if (pageData.access_token) {
+            resolvedToken = pageData.access_token;
+            pages.push({ id: envPageId, name: pageData.name || 'Líder Imobiliária', access_token: resolvedToken });
+          }
+        }
+      } catch (err) {
+        console.warn(`[Meta Sync] Aviso ao consultar /{pageId}?fields=access_token:`, err);
+      }
+
+      // Fallback: se a API não retornou token filho, tentar usar o próprio token fornecido
+      if (!pages.some(p => p.id === envPageId)) {
+        pages.push({ id: envPageId, name: 'Líder Imobiliária', access_token: resolvedToken });
+      }
+    }
+
+    // Se nenhuma página foi detectada, criar fallback direto
+    if (pages.length === 0) {
+      pages.push({ id: envPageId, name: 'Líder Imobiliária', access_token: rawToken });
+    }
+
+    // 2. Carregar dados de usuários e estado do Round-Robin UMA ÚNICA VEZ fora dos loops
+    const { data: users } = await supabase.from('users_crm').select('*');
+    const brokers = users?.filter(u => u.role === 'broker') || [];
+    const onlineBrokers = brokers.filter(u => u.status === 'online');
+    const targetPool = onlineBrokers.length > 0 ? onlineBrokers : (brokers.length > 0 ? brokers : users || []);
+
+    const { data: lastLeads } = await supabase
+      .from('leads')
+      .select('assigned_broker_id')
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    const lastAssignedId = lastLeads?.find(l => l.assigned_broker_id)?.assigned_broker_id;
+    let nextIndex = 0;
+    if (lastAssignedId && targetPool.length > 0) {
+      const lastIndex = targetPool.findIndex(u => u.id === lastAssignedId);
+      if (lastIndex !== -1) {
+        nextIndex = (lastIndex + 1) % targetPool.length;
+      }
+    }
+
+    // 3. Carregar os últimos leads do banco para checagem rápida em memória (apenas campos necessários)
+    const { data: existingLeads } = await supabase
+      .from('leads')
+      .select('id, name, phone, notes, status, property_name')
+      .order('created_at', { ascending: false })
+      .limit(500);
 
     let importedLeadsCount = 0;
     const importedDetails: any[] = [];
     const metaErrors: string[] = [];
 
-    // Buscar formulários e leads de cada entidade associada
+    // 4. Buscar formulários e leads de cada entidade associada
     for (const page of pages) {
       const pageId = page.id;
-      const pageToken = page.access_token || pageAccessToken;
+      const pageToken = page.access_token || rawToken;
 
-      // Buscar os formulários de cadastro da página/conta de anúncio
+      // Buscar os formulários de cadastro da página
       const formsRes = await fetch(`https://graph.facebook.com/v20.0/${pageId}/leadgen_forms?access_token=${pageToken}`);
       if (!formsRes.ok) {
         const errJson = await formsRes.json().catch(() => null);
-        metaErrors.push(`Página/Entidade ${pageId}: ${errJson?.error?.message || formsRes.statusText}`);
+        const errMsg = errJson?.error?.message || formsRes.statusText;
+        metaErrors.push(`Página/Entidade ${pageId}: ${errMsg}`);
         continue;
       }
 
@@ -60,17 +120,15 @@ export async function GET(req: Request) {
         const formId = form.id;
         const formName = form.name || 'Facebook Lead Ads';
 
-        // Buscar os leads gerados neste formulário
-        const leadsRes = await fetch(`https://graph.facebook.com/v20.0/${formId}/leads?access_token=${pageToken}`);
+        // Buscar os leads gerados neste formulário (limitado aos últimos 50 para evitar timeouts)
+        const leadsRes = await fetch(`https://graph.facebook.com/v20.0/${formId}/leads?limit=50&access_token=${pageToken}`);
         if (!leadsRes.ok) continue;
 
         const leadsData = await leadsRes.json();
         const leadsList = leadsData.data || [];
 
-        // Buscar leads já existentes no Supabase para evitar duplicados ou atualizar
-        const { data: existingLeads } = await supabase.from('leads').select('*');
-
         for (const lead of leadsList) {
+          const leadgenId = lead.id;
           const fieldData = lead.field_data || [];
           let name = '';
           let phone = '';
@@ -126,10 +184,10 @@ export async function GET(req: Request) {
           });
 
           if (matchedLead) {
-            // Atualizar lead existente
+            // Atualizar lead existente mantendo o corretor já atribuído
             const updatedNotes = [
-              ...matchedLead.notes,
-              `Sincronização forçada via Meta API (Formulário: ${formName}) em ${new Date().toLocaleString('pt-BR')}.`
+              ...(matchedLead.notes || []),
+              `Sincronização via Meta Ads (Formulário: ${formName}, Lead ID: ${leadgenId}) em ${new Date().toLocaleString('pt-BR')}.`
             ];
 
             await supabase
@@ -144,34 +202,15 @@ export async function GET(req: Request) {
 
             importedDetails.push({ name, phone, status: 'atualizado' });
           } else {
-            // Atribuir corretor online ou rotativo sequencial via banco
-            const { data: users } = await supabase.from('users_crm').select('*');
-            const brokers = users?.filter(u => u.role === 'broker') || [];
-            const onlineBrokers = brokers.filter(u => u.status === 'online');
-            const targetPool = onlineBrokers.length > 0 ? onlineBrokers : (brokers.length > 0 ? brokers : users || []);
+            // Atribuir próximo corretor via Round-Robin garantido
             let assignedBrokerId = 'diretoria-lider';
-
             if (targetPool.length > 0) {
-              const { data: lastLeads } = await supabase
-                .from('leads')
-                .select('assigned_broker_id')
-                .order('created_at', { ascending: false })
-                .limit(5);
-
-              const lastAssignedId = lastLeads?.find(l => l.assigned_broker_id)?.assigned_broker_id;
-              let nextIndex = 0;
-
-              if (lastAssignedId) {
-                const lastIndex = targetPool.findIndex(u => u.id === lastAssignedId);
-                if (lastIndex !== -1) {
-                  nextIndex = (lastIndex + 1) % targetPool.length;
-                }
-              }
               assignedBrokerId = targetPool[nextIndex].id;
+              nextIndex = (nextIndex + 1) % targetPool.length;
             }
 
             const newLead = {
-              id: `lead-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+              id: `lead-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
               name,
               phone,
               email: email || '',
@@ -181,12 +220,16 @@ export async function GET(req: Request) {
               created_at: lead.created_time || new Date().toISOString(),
               last_activity_at: new Date().toISOString(),
               assigned_broker_id: assignedBrokerId,
-              notes: [`Lead importado via sincronização forçada da Meta (Formulário: ${formName}).`]
+              notes: [`Lead importado via sincronização da Meta Ads (Formulário: ${formName}, ID Meta: ${leadgenId}).`]
             };
 
-            await supabase.from('leads').insert(newLead);
-            importedLeadsCount++;
-            importedDetails.push({ name, phone, status: 'criado' });
+            const { error: insertErr } = await supabase.from('leads').insert(newLead);
+            if (!insertErr) {
+              importedLeadsCount++;
+              importedDetails.push({ name, phone, status: 'criado', corretor: assignedBrokerId });
+              // Adicionar ao array em memória para evitar duplicar caso o mesmo lead apareça em mais de um formulário
+              existingLeads?.unshift(newLead);
+            }
           }
         }
       }
@@ -195,14 +238,14 @@ export async function GET(req: Request) {
     if (importedLeadsCount === 0 && metaErrors.length > 0) {
       return NextResponse.json({
         success: false,
-        error: `Meta API retornou erro ao consultar a página:\n${metaErrors.join('\n')}\n\nVerifique se o token de acesso (FACEBOOK_PAGE_ACCESS_TOKEN) possui a permissão 'leads_retrieval' ou se o ID da Página (FACEBOOK_PAGE_ID) está correto na Vercel.`
+        error: `Meta API retornou erro ao consultar a página:\n${metaErrors.join('\n')}\n\nVerifique se o token de acesso (FACEBOOK_PAGE_ACCESS_TOKEN) possui a permissão 'leads_retrieval' ou se a Página está associada ao Usuário do Sistema no Meta Business Suite.`
       }, { status: 400 });
     }
 
     return NextResponse.json({
       success: true,
       message: importedLeadsCount > 0
-        ? `Sincronização concluída com sucesso! ${importedLeadsCount} novo(s) lead(s) importado(s) e atribuído(s).`
+        ? `Sincronização concluída com sucesso! ${importedLeadsCount} novo(s) lead(s) importado(s) e distribuído(s) entre a equipe.`
         : `Sincronização concluída! Todos os leads dos formulários ativos já estão atualizados no CRM.`,
       details: importedDetails
     });

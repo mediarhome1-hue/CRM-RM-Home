@@ -462,7 +462,16 @@ export const pushUserToSupabase = async (user: UserCRM) => {
 export const pushLeadToSupabase = async (lead: Lead) => {
   if (!isSupabaseConfigured) return;
   try {
-    const { error } = await supabase.from('leads').upsert(mapLeadToDB(lead));
+    const payload = mapLeadToDB(lead);
+    let { error } = await supabase.from('leads').upsert(payload);
+
+    // Se o banco acusar que a coluna 'tasks' não existe, retenta com segurança sem o campo 'tasks'
+    if (error && (error.message?.includes('tasks') || error.code === 'PGRST204' || String(error.message).includes('column "tasks"'))) {
+      const { tasks, ...payloadWithoutTasks } = payload as any;
+      const retryResult = await supabase.from('leads').upsert(payloadWithoutTasks);
+      error = retryResult.error;
+    }
+
     if (error) {
       console.error('Erro ao enviar lead para o Supabase:', error.message, error.details, error.hint);
       const isQuota = error.message?.includes('exceed_egress_quota') || String(error.code) === '402';
