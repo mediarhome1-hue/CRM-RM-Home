@@ -109,16 +109,43 @@ export async function POST(req: Request) {
       });
     }
 
-    // 4. Seleção Justa via Round-Robin de Corretores
-    const brokers = (users || []).filter((u: any) => u.role === 'broker');
+    // 4. Seleção Inteligente de Distribuição
     const nowMs = Date.now();
+    const brokers = (users || []).filter((u: any) => u.role === 'broker');
     const onlineBrokers = brokers.filter((u: any) => {
       if (u.status !== 'online') return false;
       if (!u.last_online_at) return false;
       const lastActive = new Date(u.last_online_at).getTime();
       return (nowMs - lastActive) <= 60000;
     });
-    const targetPool = onlineBrokers.length > 0 ? onlineBrokers : (brokers.length > 0 ? brokers : users || []);
+
+    // Gerentes e Diretores (Leadership)
+    const leadership = (users || []).filter((u: any) => u.role === 'admin' || u.role === 'manager');
+    const onlineLeadership = leadership.filter((u: any) => {
+      if (u.status !== 'online') return false;
+      if (!u.last_online_at) return false;
+      const lastActive = new Date(u.last_online_at).getTime();
+      return (nowMs - lastActive) <= 60000;
+    });
+
+    // Regra: Se houver corretores online -> corretores online.
+    // Se NÃO houver nenhum corretor online -> distribui para gerentes e diretores.
+    let targetPool: any[] = [];
+    let distributionNote = '';
+
+    if (onlineBrokers.length > 0) {
+      targetPool = onlineBrokers;
+      distributionNote = 'Distribuído para corretor online de plantão.';
+    } else if (onlineLeadership.length > 0) {
+      targetPool = onlineLeadership;
+      distributionNote = 'Distribuído para gerência/direção online (sem corretores online no momento).';
+    } else if (leadership.length > 0) {
+      targetPool = leadership;
+      distributionNote = 'Distribuído para gerência/direção (sem corretores online no momento).';
+    } else {
+      targetPool = brokers.length > 0 ? brokers : users || [];
+      distributionNote = 'Distribuído para equipe geral (fallback).';
+    }
 
     const { data: lastLeads } = await supabase
       .from('leads')
@@ -126,7 +153,7 @@ export async function POST(req: Request) {
       .order('created_at', { ascending: false })
       .limit(10);
 
-    const lastAssignedId = lastLeads?.find(l => l.assigned_broker_id)?.assigned_broker_id;
+    const lastAssignedId = lastLeads?.find((l: any) => l.assigned_broker_id)?.assigned_broker_id;
     let nextIndex = 0;
     if (lastAssignedId && targetPool.length > 0) {
       const lastIndex = targetPool.findIndex((u: any) => u.id === lastAssignedId);

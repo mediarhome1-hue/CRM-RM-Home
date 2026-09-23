@@ -125,7 +125,28 @@ export async function POST(req: Request) {
       const lastActive = new Date(u.last_online_at).getTime();
       return (nowMs - lastActive) <= 60000;
     });
-    const targetPool = onlineBrokers.length > 0 ? onlineBrokers : (brokers.length > 0 ? brokers : users || []);
+
+    // Gerentes e Diretores (Leadership)
+    const leadership = users?.filter(u => u.role === 'admin' || u.role === 'manager') || [];
+    const onlineLeadership = leadership.filter(u => {
+      if (u.status !== 'online') return false;
+      if (!u.last_online_at) return false;
+      const lastActive = new Date(u.last_online_at).getTime();
+      return (nowMs - lastActive) <= 60000;
+    });
+
+    // Regra: Se houver corretores online -> corretores online.
+    // Se NÃO houver nenhum corretor online -> gerentes e diretores.
+    let targetPool: any[] = [];
+    if (onlineBrokers.length > 0) {
+      targetPool = onlineBrokers;
+    } else if (onlineLeadership.length > 0) {
+      targetPool = onlineLeadership;
+    } else if (leadership.length > 0) {
+      targetPool = leadership;
+    } else {
+      targetPool = brokers.length > 0 ? brokers : users || [];
+    }
 
     const { data: lastLeads } = await supabase
       .from('leads')

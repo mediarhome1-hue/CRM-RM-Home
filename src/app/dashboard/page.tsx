@@ -141,14 +141,15 @@ export default function Dashboard() {
       }
 
       if (res.ok && data?.success) {
-        alert(`Sincronização Meta Ads:\n\n${data.message}`);
         const { fetchFreshLeads, fetchFreshUsers } = await import('../../utils/leadsStore');
         const [freshUsers, freshLeads] = await Promise.all([
           fetchFreshUsers(),
           fetchFreshLeads()
         ]);
-        setUsers(freshUsers);
-        setLeads(freshLeads);
+        if (freshUsers && freshUsers.length > 0) setUsers(freshUsers);
+        if (freshLeads) setLeads(freshLeads);
+
+        alert(`Sincronização Meta Ads:\n\n${data.message}`);
       } else {
         const rawError = data?.error || data?.message || data?.details;
         const errorMsg = typeof rawError === 'string' && rawError.length > 0 
@@ -261,30 +262,35 @@ export default function Dashboard() {
 
     // Sincronizar com o banco de dados na nuvem (Supabase) imediatamente
     const syncCloudData = async () => {
-      const { fetchFreshLeads, fetchFreshUsers, syncWithSupabase } = await import('../../utils/leadsStore');
-      await syncWithSupabase();
-      setSupabaseStatus(getSupabaseStatus());
-      const [freshUsers, freshLeads] = await Promise.all([
-        fetchFreshUsers(),
-        fetchFreshLeads()
-      ]);
-      setUsers(freshUsers);
-      setLeads(freshLeads);
-
-      const updatedUser = freshUsers.find(u => u.id === userId);
-      if (updatedUser) {
-        setCurrentUser(updatedUser);
-        setBrokerPhone(updatedUser.phone);
-        setIsWhatsAppActive(updatedUser.isWhatsAppConnected);
-        setProfileName(updatedUser.name);
-        setProfileEmail(updatedUser.email);
-        setProfilePhone(updatedUser.phone);
-        setProfileAvatar(updatedUser.avatar);
-        setProfilePassword(updatedUser.password || '');
-        setProfileCreci(updatedUser.creci || '');
-        setProfileBio(updatedUser.bio || '');
-        setProfileBirthdate(updatedUser.birthdate || '');
-        setProfileEmailNotify(updatedUser.emailNotifications ?? true);
+      try {
+        const { fetchFreshLeads, fetchFreshUsers } = await import('../../utils/leadsStore');
+        const [freshUsers, freshLeads] = await Promise.all([
+          fetchFreshUsers(),
+          fetchFreshLeads()
+        ]);
+        if (freshUsers && freshUsers.length > 0) {
+          setUsers(freshUsers);
+          const updatedUser = freshUsers.find(u => u.id === userId);
+          if (updatedUser) {
+            setCurrentUser(updatedUser);
+            setBrokerPhone(updatedUser.phone);
+            setIsWhatsAppActive(updatedUser.isWhatsAppConnected);
+            setProfileName(updatedUser.name);
+            setProfileEmail(updatedUser.email);
+            setProfilePhone(updatedUser.phone);
+            setProfileAvatar(updatedUser.avatar);
+            setProfilePassword(updatedUser.password || '');
+            setProfileCreci(updatedUser.creci || '');
+            setProfileBio(updatedUser.bio || '');
+            setProfileBirthdate(updatedUser.birthdate || '');
+            setProfileEmailNotify(updatedUser.emailNotifications ?? true);
+          }
+        }
+        if (freshLeads && freshLeads.length > 0) {
+          setLeads(freshLeads);
+        }
+      } catch (err) {
+        console.error('Erro na sincronização inicial com Supabase:', err);
       }
     };
     syncCloudData();
