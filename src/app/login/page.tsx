@@ -9,8 +9,12 @@ import { getUsers, UserCRM, INITIAL_USERS, updateUser, getSupabaseStatus, Supaba
 
 export default function Login() {
   const router = useRouter();
-  const [users, setUsers] = useState<UserCRM[]>([]);
-  const [supabaseStatus, setSupabaseStatus] = useState<SupabaseStatus | null>(null);
+  const [users, setUsers] = useState<UserCRM[]>(() => {
+    if (typeof window === 'undefined') return INITIAL_USERS;
+    const local = getUsers();
+    return local.length > 0 ? local : INITIAL_USERS;
+  });
+  const [supabaseStatus, setSupabaseStatus] = useState<SupabaseStatus | null>(() => getSupabaseStatus());
   const [loginMode, setLoginMode] = useState<'email' | 'select'>('email'); // Default to email typing
   const [selectedUserId, setSelectedUserId] = useState('');
   const [email, setEmail] = useState('');
@@ -19,21 +23,14 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // Carregar usuários locais com fallback garantido aos padrões
-    const localUsers = getUsers();
-    setUsers(localUsers.length > 0 ? localUsers : INITIAL_USERS);
-    setSupabaseStatus(getSupabaseStatus());
-
     const syncCloudUsers = async () => {
       try {
-        const { syncWithSupabase } = await import('../../utils/leadsStore');
-        const success = await syncWithSupabase();
+        const { fetchFreshUsers, syncWithSupabase } = await import('../../utils/leadsStore');
+        await syncWithSupabase();
         setSupabaseStatus(getSupabaseStatus());
-        if (success) {
-          const updated = getUsers();
-          if (updated && updated.length > 0) {
-            setUsers(updated);
-          }
+        const updated = await fetchFreshUsers();
+        if (updated && updated.length > 0) {
+          setUsers(updated);
         }
       } catch (e) {
         console.error('Falha de sincronização Supabase:', e);

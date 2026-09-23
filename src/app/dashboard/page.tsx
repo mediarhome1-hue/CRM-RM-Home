@@ -243,32 +243,32 @@ export default function Dashboard() {
     setProfileBirthdate(user.birthdate || '');
     setProfileEmailNotify(user.emailNotifications ?? true);
 
-    // Sincronizar com o banco de dados na nuvem (Supabase) se estiver configurado
+    // Sincronizar com o banco de dados na nuvem (Supabase) imediatamente
     const syncCloudData = async () => {
-      const { syncWithSupabase } = await import('../../utils/leadsStore');
-      const success = await syncWithSupabase();
+      const { fetchFreshLeads, fetchFreshUsers, syncWithSupabase } = await import('../../utils/leadsStore');
+      await syncWithSupabase();
       setSupabaseStatus(getSupabaseStatus());
-      if (success) {
-        const freshUsers = getUsers();
-        const freshLeads = getLeads();
-        setUsers(freshUsers);
-        setLeads(freshLeads);
+      const [freshUsers, freshLeads] = await Promise.all([
+        fetchFreshUsers(),
+        fetchFreshLeads()
+      ]);
+      setUsers(freshUsers);
+      setLeads(freshLeads);
 
-        const updatedUser = freshUsers.find(u => u.id === userId);
-        if (updatedUser) {
-          setCurrentUser(updatedUser);
-          setBrokerPhone(updatedUser.phone);
-          setIsWhatsAppActive(updatedUser.isWhatsAppConnected);
-          setProfileName(updatedUser.name);
-          setProfileEmail(updatedUser.email);
-          setProfilePhone(updatedUser.phone);
-          setProfileAvatar(updatedUser.avatar);
-          setProfilePassword(updatedUser.password || '');
-          setProfileCreci(updatedUser.creci || '');
-          setProfileBio(updatedUser.bio || '');
-          setProfileBirthdate(updatedUser.birthdate || '');
-          setProfileEmailNotify(updatedUser.emailNotifications ?? true);
-        }
+      const updatedUser = freshUsers.find(u => u.id === userId);
+      if (updatedUser) {
+        setCurrentUser(updatedUser);
+        setBrokerPhone(updatedUser.phone);
+        setIsWhatsAppActive(updatedUser.isWhatsAppConnected);
+        setProfileName(updatedUser.name);
+        setProfileEmail(updatedUser.email);
+        setProfilePhone(updatedUser.phone);
+        setProfileAvatar(updatedUser.avatar);
+        setProfilePassword(updatedUser.password || '');
+        setProfileCreci(updatedUser.creci || '');
+        setProfileBio(updatedUser.bio || '');
+        setProfileBirthdate(updatedUser.birthdate || '');
+        setProfileEmailNotify(updatedUser.emailNotifications ?? true);
       }
     };
     syncCloudData();
@@ -279,48 +279,51 @@ export default function Dashboard() {
     let pollingInterval: any;
 
     if (isSupabaseConfigured) {
+      // 1. Canal Realtime para Usuários (atualização instantânea entre abas e navegadores)
       usersChannel = supabase
-        .channel('users-realtime')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'users_crm' }, async () => {
-          const { syncWithSupabase } = await import('../../utils/leadsStore');
-          await syncWithSupabase();
-          setSupabaseStatus(getSupabaseStatus());
-          const freshUsers = getUsers();
+        .channel("users-realtime-crm")
+        .on("postgres_changes", { event: "*", schema: "public", table: "users_crm" }, async (payload) => {
+          console.log("[Realtime] Usuários atualizados no Supabase:", payload.eventType);
+          const { fetchFreshUsers } = await import("../../utils/leadsStore");
+          const freshUsers = await fetchFreshUsers();
           setUsers(freshUsers);
-          
-          // Se o meu próprio usuário foi editado em tempo real por outro admin
           const updatedUser = freshUsers.find(u => u.id === userId);
           if (updatedUser) {
             setCurrentUser(updatedUser);
           }
         })
-        .subscribe();
+        .subscribe((status) => {
+          console.log("[Realtime Users Channel Status]:", status);
+        });
 
+      // 2. Canal Realtime para Leads (atualização instantânea no mesmo milissegundo)
       leadsChannel = supabase
-        .channel('leads-realtime')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, async () => {
-          const { syncWithSupabase } = await import('../../utils/leadsStore');
-          await syncWithSupabase();
-          setLeads(getLeads());
+        .channel("leads-realtime-crm")
+        .on("postgres_changes", { event: "*", schema: "public", table: "leads" }, async (payload) => {
+          console.log("[Realtime] Leads atualizados no Supabase:", payload.eventType);
+          const { fetchFreshLeads } = await import("../../utils/leadsStore");
+          const freshLeads = await fetchFreshLeads();
+          setLeads(freshLeads);
         })
-        .subscribe();
+        .subscribe((status) => {
+          console.log("[Realtime Leads Channel Status]:", status);
+        });
 
-      // Polling de segurança em segundo plano (a cada 15 segundos para não causar lag nem atraso nas interações dos botões)
+      // 3. Polling ultrarrápido a cada 3 segundos como redundância garantida entre navegadores
       pollingInterval = setInterval(async () => {
-        const { syncWithSupabase } = await import('../../utils/leadsStore');
-        const success = await syncWithSupabase();
-        setSupabaseStatus(getSupabaseStatus());
-        if (success) {
-          const freshUsers = getUsers();
-          setUsers(freshUsers);
-          setLeads(getLeads());
-          
-          const updatedUser = freshUsers.find(u => u.id === userId);
-          if (updatedUser) {
-            setCurrentUser(updatedUser);
-          }
+        const { fetchFreshLeads, fetchFreshUsers } = await import("../../utils/leadsStore");
+        const [freshUsers, freshLeads] = await Promise.all([
+          fetchFreshUsers(),
+          fetchFreshLeads()
+        ]);
+        setUsers(freshUsers);
+        setLeads(freshLeads);
+        
+        const updatedUser = freshUsers.find(u => u.id === userId);
+        if (updatedUser) {
+          setCurrentUser(updatedUser);
         }
-      }, 15000);
+      }, 3000);
     }
 
     return () => {

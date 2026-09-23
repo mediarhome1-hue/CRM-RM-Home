@@ -372,7 +372,7 @@ export const syncWithSupabase = async (): Promise<boolean> => {
       }
     }
 
-    // 2. Sincronizar Leads com Mesclagem Inteligente Bidirecional (Last-Write-Wins por Lead)
+    // 2. Sincronizar Leads - O banco Supabase é a ÚNICA fonte oficial da verdade absoluta
     const { data: leadsData, error: leadsErr } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
     if (leadsErr) {
       console.error('Erro ao sincronizar leads do Supabase:', leadsErr.message, leadsErr.details);
@@ -384,39 +384,8 @@ export const syncWithSupabase = async (): Promise<boolean> => {
       });
     } else if (leadsData) {
       const dbLeads = leadsData.map(mapLeadFromDB);
-      const localLeadsStr = localStorage.getItem('lider_leads');
-      const localLeads: Lead[] = localLeadsStr ? JSON.parse(localLeadsStr) : [];
-
-      // Dicionario indexado para mesclagem de maior atividade (Last-Write-Wins)
-      const mergedMap = new Map<string, Lead>();
-
-      // 1. Inserir todos os do banco
-      dbLeads.forEach(l => mergedMap.set(l.id, l));
-
-      // 2. Mesclar com os locais: se o local tiver lastActivityAt mais recente, mantem local e envia alteracao pendente pro Supabase
-      localLeads.forEach(localL => {
-        const dbL = mergedMap.get(localL.id);
-        if (!dbL) {
-          // Lead existe local mas nao no banco -> enviar pro Supabase
-          mergedMap.set(localL.id, localL);
-          pushLeadToSupabase(localL);
-        } else {
-          const localTime = new Date(localL.lastActivityAt || localL.createdAt).getTime();
-          const dbTime = new Date(dbL.lastActivityAt || dbL.createdAt).getTime();
-
-          if (localTime > dbTime) {
-            // Alteracao local e mais recente que a do banco -> dar push pro Supabase
-            mergedMap.set(localL.id, localL);
-            pushLeadToSupabase(localL);
-          }
-        }
-      });
-
-      const mergedLeads = Array.from(mergedMap.values()).sort((a, b) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-
-      localStorage.setItem('lider_leads', JSON.stringify(mergedLeads));
+      // O Supabase é a fonte oficial da verdade: atualiza o cache local estritamente com os dados da nuvem
+      localStorage.setItem('lider_leads', JSON.stringify(dbLeads));
       if (success) {
         setSupabaseStatus({ isRestricted: false, errorMessage: undefined });
       }
@@ -432,6 +401,43 @@ export const syncWithSupabase = async (): Promise<boolean> => {
     });
     return false;
   }
+};
+
+// Funções para busca direta e atualização instantânea sem delay
+export const fetchFreshLeads = async (): Promise<Lead[]> => {
+  if (!isSupabaseConfigured) return getLeads();
+  try {
+    const { data, error } = await supabase.from('leads').select('*').order('created_at', { ascending: false });
+    if (!error && data) {
+      const fresh = data.map(mapLeadFromDB);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('lider_leads', JSON.stringify(fresh));
+      }
+      return fresh;
+    }
+  } catch (err) {
+    console.error('Erro ao buscar leads atualizados do Supabase:', err);
+  }
+  return getLeads();
+};
+
+export const fetchFreshUsers = async (): Promise<UserCRM[]> => {
+  if (!isSupabaseConfigured) return getUsers();
+  try {
+    const { data, error } = await supabase.from('users_crm').select('*');
+    if (!error && data) {
+      const fresh = data.map(mapUserFromDB);
+      const validOfficialIds = ['diretoria-lider', 'daiany-martins', 'matheus-souto', 'samira-martins', 'izabel-cristina', 'amaro-bispo', 'etiene-maria', 'edson-santos'];
+      const cleanUsers = fresh.filter(u => validOfficialIds.includes(u.id) || u.id.startsWith('user-'));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('lider_crm_users', JSON.stringify(cleanUsers));
+      }
+      return cleanUsers;
+    }
+  } catch (err) {
+    console.error('Erro ao buscar usuários atualizados do Supabase:', err);
+  }
+  return getUsers();
 };
 
 export const pushUserToSupabase = async (user: UserCRM) => {
