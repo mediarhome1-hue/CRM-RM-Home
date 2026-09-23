@@ -141,10 +141,14 @@ export default function Dashboard() {
       }
 
       if (res.ok && data?.success) {
-        alert(`Sincronização Meta Ads efetuada com sucesso!\n\n${data.message}`);
-        const { syncWithSupabase } = await import('../../utils/leadsStore');
-        await syncWithSupabase();
-        setLeads(getLeads());
+        alert(`Sincronização Meta Ads:\n\n${data.message}`);
+        const { fetchFreshLeads, fetchFreshUsers } = await import('../../utils/leadsStore');
+        const [freshUsers, freshLeads] = await Promise.all([
+          fetchFreshUsers(),
+          fetchFreshLeads()
+        ]);
+        setUsers(freshUsers);
+        setLeads(freshLeads);
       } else {
         const rawError = data?.error || data?.message || data?.details;
         const errorMsg = typeof rawError === 'string' && rawError.length > 0 

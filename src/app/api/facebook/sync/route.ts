@@ -103,7 +103,10 @@ export async function GET() {
       .order('created_at', { ascending: false })
       .limit(500);
 
-    let importedLeadsCount = 0;
+    let totalFormsFound = 0;
+    let totalMetaLeadsFound = 0;
+    let createdLeadsCount = 0;
+    let updatedLeadsCount = 0;
     const importedDetails: any[] = [];
     const metaErrors: string[] = [];
 
@@ -125,15 +128,22 @@ export async function GET() {
       const forms = formsData.data || [];
 
       for (const form of forms) {
+        totalFormsFound++;
         const formId = form.id;
         const formName = form.name || 'Facebook Lead Ads';
 
         // Buscar os leads gerados neste formulário (limitado aos últimos 50 para evitar timeouts)
         const leadsRes = await fetch(`https://graph.facebook.com/v20.0/${formId}/leads?limit=50&access_token=${pageToken}`);
-        if (!leadsRes.ok) continue;
+        if (!leadsRes.ok) {
+          const errJson = await leadsRes.json().catch(() => null);
+          const errMsg = errJson?.error?.message || leadsRes.statusText;
+          metaErrors.push(`Formulário "${formName}" (${formId}): ${errMsg}`);
+          continue;
+        }
 
         const leadsData = await leadsRes.json();
         const leadsList = leadsData.data || [];
+        totalMetaLeadsFound += leadsList.length;
 
         for (const lead of leadsList) {
           const leadgenId = lead.id;
@@ -208,6 +218,7 @@ export async function GET() {
               })
               .eq('id', matchedLead.id);
 
+            updatedLeadsCount++;
             importedDetails.push({ name, phone, status: 'atualizado' });
           } else {
             // Atribuir próximo corretor via Round-Robin garantido
@@ -233,7 +244,7 @@ export async function GET() {
 
             const { error: insertErr } = await supabase.from('leads').insert(newLead);
             if (!insertErr) {
-              importedLeadsCount++;
+              createdLeadsCount++;
               importedDetails.push({ name, phone, status: 'criado', corretor: assignedBrokerId });
               // Adicionar ao array em memória para evitar duplicar caso o mesmo lead apareça em mais de um formulário
               existingLeads?.unshift(newLead);
@@ -243,18 +254,38 @@ export async function GET() {
       }
     }
 
-    if (importedLeadsCount === 0 && metaErrors.length > 0) {
+    if (createdLeadsCount === 0 && updatedLeadsCount === 0 && metaErrors.length > 0) {
       return NextResponse.json({
         success: false,
-        error: `Meta API retornou erro ao consultar a página:\n${metaErrors.join('\n')}\n\nVerifique se o token de acesso (FACEBOOK_PAGE_ACCESS_TOKEN) possui a permissão 'leads_retrieval' ou se a Página está associada ao Usuário do Sistema no Meta Business Suite.`
+        error: `A Meta API retornou aviso/erro ao consultar os leads:\n\n${metaErrors.join('\n')}\n\nPossíveis causas:\n1. O token de acesso (FACEBOOK_PAGE_ACCESS_TOKEN) não possui a permissão 'leads_retrieval'.\n2. O Usuário do Sistema da Meta não tem acesso concedido a esta Página ou Formulários no Meta Business Suite.`
       }, { status: 400 });
+    }
+
+    if (totalFormsFound === 0) {
+      return NextResponse.json({
+        success: true,
+        message: `Nenhum formulário de cadastro ativo foi retornado pela Meta para a Página configurada (ID: ${envPageId}).\n\nVerifique no Gerenciador de Anúncios se as campanhas estão ativas e vinculadas a formulários instantâneos desta página.`
+      });
+    }
+
+    if (totalMetaLeadsFound === 0) {
+      return NextResponse.json({
+        success: true,
+        message: `Foram consultados ${totalFormsFound} formulário(s) na Meta, porém não há nenhum lead cadastrado nestes formulários até o momento.\n\nAssim que os clientes preencherem os formulários nos anúncios, eles entrarão automaticamente no CRM.`
+      });
+    }
+
+    if (createdLeadsCount === 0 && updatedLeadsCount > 0) {
+      return NextResponse.json({
+        success: true,
+        message: `Sincronização concluída!\n\nForam encontrados ${totalMetaLeadsFound} lead(s) na Meta. Todos os ${updatedLeadsCount} lead(s) já estavam previamente cadastrados no CRM e tiveram seu histórico/status confirmados com sucesso (nenhum lead novo pendente).`,
+        details: importedDetails
+      });
     }
 
     return NextResponse.json({
       success: true,
-      message: importedLeadsCount > 0
-        ? `Sincronização concluída com sucesso! ${importedLeadsCount} novo(s) lead(s) importado(s) e distribuído(s) entre a equipe.`
-        : `Sincronização concluída! Todos os leads dos formulários ativos já estão atualizados no CRM.`,
+      message: `Sincronização concluída com sucesso!\n\n• ${createdLeadsCount} novo(s) lead(s) importado(s) e distribuído(s) aos corretores.\n• ${updatedLeadsCount} lead(s) existente(s) atualizado(s).`,
       details: importedDetails
     });
 

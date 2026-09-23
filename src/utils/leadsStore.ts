@@ -376,9 +376,7 @@ export const syncWithSupabase = async (): Promise<boolean> => {
         }
       } else {
         const mappedUsers = usersData.map(mapUserFromDB);
-        // Filtrar e remover usuários antigos/legados que possam estar na tabela do Supabase
-        const validOfficialIds = ['diretoria-lider', 'daiany-martins', 'matheus-souto', 'samira-martins', 'izabel-cristina', 'amaro-bispo', 'etiene-maria', 'edson-santos'];
-        const cleanUsers = mappedUsers.filter(u => validOfficialIds.includes(u.id) || u.id.startsWith('user-'));
+        const cleanUsers = mappedUsers.filter(u => u && u.id);
         localStorage.setItem('lider_crm_users', JSON.stringify(cleanUsers));
         setSupabaseStatus({ isRestricted: false, errorMessage: undefined });
       }
