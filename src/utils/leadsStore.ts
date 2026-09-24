@@ -61,14 +61,14 @@ export const setSupabaseStatus = (status: Partial<SupabaseStatus>) => {
 };
 
 /**
- * Validação precisa de presença: corretor só é considerado online se estiver com
- * status 'online' E tiver emitido batimento (heartbeat) nos últimos 60 segundos.
+ * Validação precisa de presença: usuário só é considerado online se estiver com
+ * status 'online' E tiver emitido batimento (heartbeat) nos últimos 3 minutos (180s).
  */
-export const isUserActiveOnline = (user?: UserCRM | null, windowMs = 60000): boolean => {
+export const isUserActiveOnline = (user?: UserCRM | null, windowMs = 180000): boolean => {
   if (!user || user.status !== 'online') return false;
-  if (!user.lastOnlineAt) return false;
+  if (!user.lastOnlineAt) return true; // Se foi marcado online agora mas ainda não salvou timestamp
   const lastActive = new Date(user.lastOnlineAt).getTime();
-  if (isNaN(lastActive)) return false;
+  if (isNaN(lastActive)) return true;
   return (Date.now() - lastActive) <= windowMs;
 };
 
@@ -834,18 +834,33 @@ export const addLeadManual = (leadData: Omit<Lead, 'id' | 'createdAt' | 'status'
 };
 
 export const updateLeadStatus = (leadId: string, newStatus: Lead['status']): Lead[] => {
-  const leads = getLeads().map(l => {
+  const isAttended = newStatus !== 'new';
+  const nowIso = new Date().toISOString();
+
+  // 1. Atualizar diretamente no Supabase com update atômico veloz
+  if (isSupabaseConfigured) {
+    const updatePayload: any = {
+      status: newStatus,
+      last_activity_at: nowIso
+    };
+    if (isAttended) {
+      updatePayload.attended_at = nowIso;
+    }
+    supabase.from('leads').update(updatePayload).eq('id', leadId).then(({ error }) => {
+      if (error) console.error('Erro no updateLeadStatus no Supabase:', error.message);
+    });
+  }
+
+  // 2. Atualizar cache local
+  const stored = getLeads();
+  const leads = stored.map(l => {
     if (l.id === leadId) {
-      const isAttended = newStatus !== 'new';
-      const updated: Lead = { 
+      return { 
         ...l, 
         status: newStatus,
-        lastActivityAt: new Date().toISOString(),
-        attendedAt: isAttended ? new Date().toISOString() : l.attendedAt
+        lastActivityAt: nowIso,
+        attendedAt: isAttended ? (l.attendedAt || nowIso) : l.attendedAt
       };
-      // Envio em segundo plano (nao bloqueia a interface nem causa delay no clique)
-      pushLeadToSupabase(updated).catch(err => console.error('Erro assíncrono pushLeadToSupabase:', err));
-      return updated;
     }
     return l;
   });
@@ -857,16 +872,27 @@ export const addLeadNote = (leadId: string, note: string, authorName?: string): 
   const noteContent = authorName 
     ? `[${authorName} - ${new Date().toLocaleString('pt-BR')}]: ${note}`
     : note;
+  const nowIso = new Date().toISOString();
+
+  if (isSupabaseConfigured) {
+    supabase.from('leads').select('notes, attended_at').eq('id', leadId).single().then(({ data }) => {
+      const existingNotes = data?.notes || [];
+      supabase.from('leads').update({
+        notes: [...existingNotes, noteContent],
+        last_activity_at: nowIso,
+        attended_at: data?.attended_at || nowIso
+      }).eq('id', leadId).then();
+    });
+  }
 
   const leads = getLeads().map(l => {
     if (l.id === leadId) {
       const updated: Lead = { 
         ...l, 
         notes: [...l.notes, noteContent],
-        lastActivityAt: new Date().toISOString(),
-        attendedAt: l.attendedAt || new Date().toISOString()
+        lastActivityAt: nowIso,
+        attendedAt: l.attendedAt || nowIso
       };
-      pushLeadToSupabase(updated);
       return updated;
     }
     return l;
@@ -987,6 +1013,7 @@ export const reassignLead = (leadId: string, newBrokerId: string, changedBy: str
   const brokers = getUsers();
   const newBroker = brokers.find(b => b.id === newBrokerId);
   const newBrokerName = newBroker ? newBroker.name : newBrokerId;
+  const nowIso = new Date().toISOString();
 
   const leads = getLeads().map(l => {
     if (l.id === leadId) {
@@ -998,9 +1025,17 @@ export const reassignLead = (leadId: string, newBrokerId: string, changedBy: str
         ...l, 
         assignedBrokerId: newBrokerId,
         notes: [...l.notes, noteText],
-        lastActivityAt: new Date().toISOString()
+        lastActivityAt: nowIso
       };
-      pushLeadToSupabase(updated);
+
+      if (isSupabaseConfigured) {
+        supabase.from('leads').update({
+          assigned_broker_id: newBrokerId,
+          notes: updated.notes,
+          last_activity_at: nowIso
+        }).eq('id', leadId).then();
+      }
+
       return updated;
     }
     return l;

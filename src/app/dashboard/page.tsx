@@ -229,19 +229,22 @@ export default function Dashboard() {
       return;
     }
 
-    // Gerenciamento de status online automático (corretores)
-    if (user.role === 'broker') {
-      const manualOffline = localStorage.getItem(`broker_manual_offline_${user.id}`) === 'true';
-      if (!manualOffline) {
-        const now = new Date().toISOString();
-        const updatedUsers = updateUser(user.id, { status: 'online', lastOnlineAt: now });
-        user = updatedUsers.find(u => u.id === userId) || user;
-        currentUsers = updatedUsers;
+    // Gerenciamento de status online automático (corretores, gerentes e diretores)
+    const manualOffline = localStorage.getItem(`broker_manual_offline_${user.id}`) === 'true';
+    if (!manualOffline) {
+      const now = new Date().toISOString();
+      const updatedUsers = updateUser(user.id, { status: 'online', lastOnlineAt: now });
+      user = updatedUsers.find(u => u.id === userId) || user;
+      currentUsers = updatedUsers;
+      if (isSupabaseConfigured) {
+        supabase
+          .from('users_crm')
+          .update({ last_online_at: now, status: 'online' })
+          .eq('id', user.id)
+          .then();
       }
-      sessionStorage.setItem('session_active', 'true');
-    } else {
-      sessionStorage.setItem('session_active', 'true');
     }
+    sessionStorage.setItem('session_active', 'true');
 
     setUsers(currentUsers);
     setCurrentUser(user);
@@ -612,19 +615,62 @@ export default function Dashboard() {
   };
 
   const handleLeadStatusChange = (leadId: string, status: Lead['status']) => {
-    const updated = updateLeadStatus(leadId, status);
-    setLeads(updated);
+    const isAttended = status !== 'new';
+    const nowIso = new Date().toISOString();
+
+    // 1. Atualização otimista imediata no React State (avanço instantâneo na tela)
+    setLeads(prevLeads => {
+      return prevLeads.map(l => {
+        if (l.id === leadId) {
+          return {
+            ...l,
+            status,
+            lastActivityAt: nowIso,
+            attendedAt: isAttended ? (l.attendedAt || nowIso) : l.attendedAt
+          };
+        }
+        return l;
+      });
+    });
+
     if (selectedLead && selectedLead.id === leadId) {
-      setSelectedLead({ ...selectedLead, status });
+      setSelectedLead(prev => prev ? {
+        ...prev,
+        status,
+        lastActivityAt: nowIso,
+        attendedAt: isAttended ? (prev.attendedAt || nowIso) : prev.attendedAt
+      } : null);
     }
+
+    // 2. Persistência atômica no banco de dados e cache
+    updateLeadStatus(leadId, status);
   };
 
   const handleReassignLead = (leadId: string, newBrokerId: string) => {
     if (!currentUser) return;
+    const nowIso = new Date().toISOString();
+    
+    // Atualização otimista imediata
+    setLeads(prevLeads => {
+      return prevLeads.map(l => {
+        if (l.id === leadId) {
+          return {
+            ...l,
+            assignedBrokerId: newBrokerId,
+            lastActivityAt: nowIso
+          };
+        }
+        return l;
+      });
+    });
+
     const updated = reassignLead(leadId, newBrokerId, currentUser.name);
-    setLeads(updated);
     if (selectedLead && selectedLead.id === leadId) {
-      setSelectedLead(updated.find(l => l.id === leadId) || null);
+      setSelectedLead(prev => prev ? {
+        ...prev,
+        assignedBrokerId: newBrokerId,
+        lastActivityAt: nowIso
+      } : null);
     }
   };
 
@@ -1377,59 +1423,110 @@ export default function Dashboard() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto justify-end">
-            {/* Contador de Corretores Online (Gestores) */}
-            {(currentUser.role === 'admin' || currentUser.role === 'manager') && (
-              <div className="relative" ref={onlineDropdownRef}>
-                <button
-                  onClick={() => setIsOnlineDropdownOpen(!isOnlineDropdownOpen)}
-                  className="flex items-center gap-2.5 bg-green-500/5 hover:bg-green-500/10 px-3 py-2 rounded-2xl border border-green-500/10 text-green-700 transition-colors focus:outline-none select-none cursor-pointer"
-                >
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                  </span>
-                  <span className="text-[10px] font-black tracking-wider uppercase flex items-center gap-1.5">
-                    {users.filter(u => u.role === 'broker' && isUserActiveOnline(u)).length} 
-                    <span>{users.filter(u => u.role === 'broker' && isUserActiveOnline(u)).length === 1 ? 'Corretor Online' : 'Corretores Online'}</span>
-                  </span>
-                </button>
+            {/* Contador de Presença Online */}
+            {(() => {
+              const onlineBrokers = users.filter(u => u.role === 'broker' && isUserActiveOnline(u));
+              const onlineLeaders = users.filter(u => (u.role === 'admin' || u.role === 'manager') && isUserActiveOnline(u));
 
-                <AnimatePresence>
-                  {isOnlineDropdownOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-4"
-                    >
-                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 pb-2 border-b border-slate-100 flex items-center justify-between">
-                        <span>Corretores Ativos</span>
-                        <span className="bg-green-500/10 text-green-600 px-2 py-0.5 rounded-full text-[9px] font-black">
-                          {users.filter(u => u.role === 'broker' && isUserActiveOnline(u)).length}
-                        </span>
-                      </h4>
-                      <div className="space-y-2.5 max-h-48 overflow-y-auto">
-                        {users.filter(u => u.role === 'broker' && isUserActiveOnline(u)).length > 0 ? (
-                          users.filter(u => u.role === 'broker' && isUserActiveOnline(u)).map(b => (
-                            <div key={b.id} className="flex items-center gap-3">
-                              <img src={b.avatar} alt={b.name} className="w-8 h-8 rounded-full object-cover border border-green-500/25" />
-                              <div className="overflow-hidden">
-                                <p className="text-xs font-bold text-slate-800 truncate">{b.name}</p>
-                                <span className="text-[9px] text-green-500 font-black uppercase tracking-wider">● Online</span>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-center py-4 text-slate-400 text-xs font-semibold">
-                            Nenhum corretor online
+              return (
+                <div className="relative" ref={onlineDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsOnlineDropdownOpen(!isOnlineDropdownOpen)}
+                    className="flex items-center gap-2.5 bg-green-500/5 hover:bg-green-500/10 px-3 py-2 rounded-2xl border border-green-500/15 text-green-700 transition-colors focus:outline-none select-none cursor-pointer"
+                  >
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                    </span>
+                    <span className="text-[10px] font-black tracking-wider uppercase flex items-center gap-1.5">
+                      {onlineBrokers.length > 0 ? (
+                        <>
+                          <span>{onlineBrokers.length} {onlineBrokers.length === 1 ? 'Corretor Online' : 'Corretores Online'}</span>
+                          {onlineLeaders.length > 0 && (
+                            <span className="text-emerald-700/70 font-semibold lowercase">({onlineLeaders.length} gestão)</span>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <span>0 Corretores Online</span>
+                          {onlineLeaders.length > 0 && (
+                            <span className="text-emerald-700 font-bold lowercase">({onlineLeaders.length} gestão ativa)</span>
+                          )}
+                        </>
+                      )}
+                    </span>
+                  </button>
+
+                  <AnimatePresence>
+                    {isOnlineDropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        className="absolute right-0 mt-2 w-72 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-slate-100"
+                      >
+                        {/* Seção Corretores */}
+                        <div className="p-3">
+                          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center justify-between">
+                            <span>Corretores de Plantão</span>
+                            <span className="bg-green-500/10 text-green-600 px-2 py-0.5 rounded-full text-[9px] font-black">
+                              {onlineBrokers.length}
+                            </span>
+                          </h4>
+                          <div className="space-y-2 max-h-36 overflow-y-auto">
+                            {onlineBrokers.length > 0 ? (
+                              onlineBrokers.map(b => (
+                                <div key={b.id} className="flex items-center gap-2.5">
+                                  <img src={b.avatar || '/Logotipo Lider.svg'} alt={b.name} className="w-7 h-7 rounded-full object-cover border border-green-500/25" />
+                                  <div className="overflow-hidden flex-1 min-w-0">
+                                    <p className="text-xs font-bold text-slate-800 truncate">{b.name}</p>
+                                    <span className="text-[9px] text-green-600 font-bold uppercase tracking-wider">● Online no CRM</span>
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-[11px] text-slate-400 italic py-1">
+                                Nenhum corretor online. Leads serão direcionados para a gestão.
+                              </p>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            )}
+                        </div>
+
+                        {/* Seção Gestão e Diretoria */}
+                        <div className="p-3 bg-slate-50/50">
+                          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center justify-between">
+                            <span>Gestão & Diretoria</span>
+                            <span className="bg-blue-500/10 text-blue-600 px-2 py-0.5 rounded-full text-[9px] font-black">
+                              {onlineLeaders.length}
+                            </span>
+                          </h4>
+                          <div className="space-y-2 max-h-36 overflow-y-auto">
+                            {onlineLeaders.length > 0 ? (
+                              onlineLeaders.map(l => (
+                                <div key={l.id} className="flex items-center gap-2.5">
+                                  <img src={l.avatar || '/Logotipo Lider.svg'} alt={l.name} className="w-7 h-7 rounded-full object-cover border border-blue-500/25" />
+                                  <div className="overflow-hidden flex-1 min-w-0">
+                                    <p className="text-xs font-bold text-slate-800 truncate">{l.name}</p>
+                                    <span className="text-[9px] text-blue-600 font-bold uppercase tracking-wider">
+                                      ● {l.role === 'admin' ? 'Diretoria' : 'Gerência'} Conectada
+                                    </span>
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-[11px] text-slate-400 italic py-1">
+                                Nenhum gestor conectado no momento.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })()}
 
             {/* Filtro de Leads por Corretor (Direção e Gerência) */}
             {(currentUser.role === 'admin' || currentUser.role === 'manager') && (activeTab === 'kanban' || activeTab === 'list') && (
