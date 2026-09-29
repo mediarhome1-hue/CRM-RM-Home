@@ -321,12 +321,12 @@ export default function Dashboard() {
           console.log("[Realtime Users Channel Status]:", status);
         });
 
-      // 2. Canal Realtime para Leads (atualização instantânea no mesmo milissegundo)
+      // 2. Canal Realtime para Leads (atualização instantânea no mesmo milissegundo sem roundtrips extras)
       leadsChannel = supabase
         .channel("leads-realtime-crm")
         .on("postgres_changes", { event: "*", schema: "public", table: "leads" }, async (payload) => {
           console.log("[Realtime] Leads atualizados no Supabase:", payload.eventType);
-          const { fetchFreshLeads, mapLeadFromDB } = await import("../../utils/leadsStore");
+          const { mapLeadFromDB } = await import("../../utils/leadsStore");
           if (payload.eventType === 'INSERT' && payload.new) {
             const newLead = mapLeadFromDB(payload.new);
             setLeads(prev => {
@@ -335,32 +335,53 @@ export default function Dashboard() {
             });
           } else if (payload.eventType === 'UPDATE' && payload.new) {
             const updated = mapLeadFromDB(payload.new);
-            setLeads(prev => prev.map(l => l.id === updated.id ? updated : l));
+            setLeads(prev => prev.map(l => {
+              if (l.id === updated.id) {
+                // Preserva versão local se esta possuir alteração com timestamp igual ou mais recente
+                const localTime = new Date(l.lastActivityAt || l.createdAt).getTime();
+                const remoteTime = new Date(updated.lastActivityAt || updated.createdAt).getTime();
+                if (localTime > remoteTime) return l;
+                return updated;
+              }
+              return l;
+            }));
           } else if (payload.eventType === 'DELETE' && payload.old) {
             setLeads(prev => prev.filter(l => l.id !== payload.old.id));
           }
-          const freshLeads = await fetchFreshLeads();
-          setLeads(freshLeads);
         })
         .subscribe((status) => {
           console.log("[Realtime Leads Channel Status]:", status);
         });
 
-      // 3. Polling ultrarrápido a cada 3 segundos como redundância garantida entre navegadores
+      // 3. Polling de redundância com merge inteligente (impede recuo de estado / jitter na tela)
       pollingInterval = setInterval(async () => {
         const { fetchFreshLeads, fetchFreshUsers } = await import("../../utils/leadsStore");
         const [freshUsers, freshLeads] = await Promise.all([
           fetchFreshUsers(),
           fetchFreshLeads()
         ]);
-        setUsers(freshUsers);
-        setLeads(freshLeads);
-        
-        const updatedUser = freshUsers.find(u => u.id === userId);
-        if (updatedUser) {
-          setCurrentUser(updatedUser);
+        if (freshUsers && freshUsers.length > 0) {
+          setUsers(freshUsers);
+          const updatedUser = freshUsers.find(u => u.id === userId);
+          if (updatedUser) {
+            setCurrentUser(updatedUser);
+          }
         }
-      }, 3000);
+        if (freshLeads && freshLeads.length > 0) {
+          setLeads(prev => {
+            if (prev.length === 0) return freshLeads;
+            return freshLeads.map(fresh => {
+              const local = prev.find(l => l.id === fresh.id);
+              if (!local) return fresh;
+              const localTime = new Date(local.lastActivityAt || local.createdAt).getTime();
+              const freshTime = new Date(fresh.lastActivityAt || fresh.createdAt).getTime();
+              // Se a versão local estiver mais recente ou no mesmo milissegundo, preserva a versão local
+              if (localTime >= freshTime) return local;
+              return fresh;
+            });
+          });
+        }
+      }, 4000);
     }
 
     // 4. Sincronização imediata ao focar janela ou alternar abas (vital para paridade imediata no Safari / iOS)
@@ -649,14 +670,18 @@ export default function Dashboard() {
   const handleReassignLead = (leadId: string, newBrokerId: string) => {
     if (!currentUser) return;
     const nowIso = new Date().toISOString();
+    const targetUser = users.find(u => u.id === newBrokerId);
+    const brokerName = targetUser ? targetUser.name : (newBrokerId ? 'Corretor Selecionado' : 'Fila Geral (Disponível)');
+    const noteText = `Lead reatribuído para ${brokerName} por ${currentUser.name} em ${new Date().toLocaleString('pt-BR')}`;
     
-    // Atualização otimista imediata
+    // 1. Atualização otimista imediata no React State (zero delay na tela)
     setLeads(prevLeads => {
       return prevLeads.map(l => {
         if (l.id === leadId) {
           return {
             ...l,
             assignedBrokerId: newBrokerId,
+            notes: [...(l.notes || []), noteText],
             lastActivityAt: nowIso
           };
         }
@@ -664,14 +689,17 @@ export default function Dashboard() {
       });
     });
 
-    const updated = reassignLead(leadId, newBrokerId, currentUser.name);
     if (selectedLead && selectedLead.id === leadId) {
       setSelectedLead(prev => prev ? {
         ...prev,
         assignedBrokerId: newBrokerId,
+        notes: [...(prev.notes || []), noteText],
         lastActivityAt: nowIso
       } : null);
     }
+
+    // 2. Persistência atômica no banco de dados e cache
+    reassignLead(leadId, newBrokerId, currentUser.name);
   };
 
   const handleAddNoteSubmit = (e: React.FormEvent) => {
@@ -679,25 +707,86 @@ export default function Dashboard() {
     if (!newNote || !selectedLead) return;
 
     const author = currentUser ? currentUser.name : undefined;
-    const updated = addLeadNote(selectedLead.id, newNote, author);
-    setLeads(updated);
-    setSelectedLead(updated.find(l => l.id === selectedLead.id) || null);
+    const noteText = newNote.trim();
+    const noteContent = author 
+      ? `[${author} - ${new Date().toLocaleString('pt-BR')}]: ${noteText}`
+      : noteText;
+    const nowIso = new Date().toISOString();
+
+    // 1. Atualização otimista imediata no React State (zero delay ao registrar atividade)
+    const updatedNotes = [...(selectedLead.notes || []), noteContent];
+
+    setLeads(prevLeads => prevLeads.map(l => {
+      if (l.id === selectedLead.id) {
+        return {
+          ...l,
+          notes: updatedNotes,
+          lastActivityAt: nowIso,
+          attendedAt: l.attendedAt || nowIso
+        };
+      }
+      return l;
+    }));
+
+    setSelectedLead(prev => prev ? {
+      ...prev,
+      notes: updatedNotes,
+      lastActivityAt: nowIso,
+      attendedAt: prev.attendedAt || nowIso
+    } : null);
+
     setNewNote('');
+
+    // 2. Persistência atômica no Supabase em segundo plano
+    addLeadNote(selectedLead.id, noteText, author);
   };
 
   const handleAddTaskSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!taskTitle || !taskDatetime || !selectedLead) return;
 
-    const updated = addLeadTask(selectedLead.id, taskTitle, taskDatetime);
-    setLeads(updated);
-    setSelectedLead(updated.find(l => l.id === selectedLead.id) || null);
+    const nowIso = new Date().toISOString();
+    const titleToSave = taskTitle.trim();
+    const dtToSave = taskDatetime;
+    const newTask: Task = {
+      id: `task-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      title: titleToSave,
+      datetime: dtToSave,
+      completed: false,
+      createdAt: nowIso
+    };
+
+    // 1. Atualização otimista imediata no React State
+    const updatedTasks = [...(selectedLead.tasks || []), newTask];
+
+    setLeads(prevLeads => prevLeads.map(l => {
+      if (l.id === selectedLead.id) {
+        return {
+          ...l,
+          tasks: updatedTasks,
+          lastActivityAt: nowIso
+        };
+      }
+      return l;
+    }));
+
+    setSelectedLead(prev => prev ? {
+      ...prev,
+      tasks: updatedTasks,
+      lastActivityAt: nowIso
+    } : null);
+
+    setTaskTitle('');
+    setTaskDatetime('');
+
+    // 2. Persistência no banco
+    addLeadTask(selectedLead.id, titleToSave, dtToSave);
 
     // Se o corretor responsável tiver WhatsApp cadastrado, envia um lembrete no WhatsApp dele
     const assignedUser = users.find(u => u.id === selectedLead.assignedBrokerId);
     if (assignedUser && assignedUser.phone) {
-      const formattedDate = new Date(taskDatetime).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-      const text = `📅 *NOVA TAREFA AGENDADA NO CRM LÍDER!*\n\n📌 *Tarefa:* ${taskTitle}\n👤 *Cliente:* ${selectedLead.name}\n📱 *Contato:* ${selectedLead.phone}\n⏰ *Data/Hora:* ${formattedDate}\n\n👉 Acesse o CRM: https://www.liderimobiliariape.com.br/dashboard`;
+      const formattedDate = new Date(dtToSave).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+      const text = `📅 *NOVA TAREFA AGENDADA NO CRM LÍDER!*\n\n📌 *Tarefa:* ${titleToSave}\n👤 *Cliente:* ${selectedLead.name}\n📱 *Contato:* ${selectedLead.phone}\n⏰ *Data/Hora:* ${formattedDate}\n\n👉 Acesse o CRM: https://www.liderimobiliariape.com.br/dashboard`;
 
       fetch('/api/whatsapp/send', {
         method: 'POST',
@@ -709,16 +798,36 @@ export default function Dashboard() {
         })
       }).catch(err => console.error('Erro ao enviar lembrete no WhatsApp:', err));
     }
-
-    setTaskTitle('');
-    setTaskDatetime('');
   };
 
   const handleToggleTask = (taskId: string) => {
     if (!selectedLead) return;
-    const updated = toggleLeadTask(selectedLead.id, taskId);
-    setLeads(updated);
-    setSelectedLead(updated.find(l => l.id === selectedLead.id) || null);
+    const nowIso = new Date().toISOString();
+
+    const updatedTasks = (selectedLead.tasks || []).map(t => 
+      t.id === taskId ? { ...t, completed: !t.completed } : t
+    );
+
+    // 1. Atualização otimista imediata no React State
+    setLeads(prevLeads => prevLeads.map(l => {
+      if (l.id === selectedLead.id) {
+        return {
+          ...l,
+          tasks: updatedTasks,
+          lastActivityAt: nowIso
+        };
+      }
+      return l;
+    }));
+
+    setSelectedLead(prev => prev ? {
+      ...prev,
+      tasks: updatedTasks,
+      lastActivityAt: nowIso
+    } : null);
+
+    // 2. Persistência atômica
+    toggleLeadTask(selectedLead.id, taskId);
   };
 
   const handleDeleteLead = (leadId: string) => {
@@ -1225,7 +1334,13 @@ export default function Dashboard() {
       roleLeads = leads;
     } else if (currentUser.role === 'manager') {
       const myTeamBrokerIds = users.filter(u => u.managerId === currentUser.id).map(u => u.id);
-      roleLeads = leads.filter(l => l.assignedBrokerId === currentUser.id || myTeamBrokerIds.includes(l.assignedBrokerId));
+      // Se houver equipe explicitamente vinculada no banco, gerencia a equipe, a si próprio e leads sem corretor
+      // Se ainda não houver equipe vinculada (padrão quando corretores estão soltos), o gestor gerencia todos os leads
+      if (myTeamBrokerIds.length > 0) {
+        roleLeads = leads.filter(l => l.assignedBrokerId === currentUser.id || myTeamBrokerIds.includes(l.assignedBrokerId) || !l.assignedBrokerId);
+      } else {
+        roleLeads = leads;
+      }
     } else {
       roleLeads = leads.filter(l => l.assignedBrokerId === currentUser.id);
     }
@@ -1248,9 +1363,10 @@ export default function Dashboard() {
     l.phone.includes(searchTerm)
   );
 
-  const visibleUsers = currentUser.role === 'admin'
+  const myTeamBrokers = users.filter(u => u.role === 'broker' && u.managerId === currentUser.id);
+  const visibleUsers = currentUser.role === 'admin' || (currentUser.role === 'manager' && myTeamBrokers.length === 0)
     ? users
-    : users.filter(u => u.role === 'broker' && u.managerId === currentUser.id);
+    : myTeamBrokers;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col md:flex-row relative">
@@ -1660,15 +1776,16 @@ export default function Dashboard() {
                              <div className="space-y-1 text-xs text-slate-500 font-medium mb-3">
                               <div className="flex items-center gap-1.5"><Phone size={12} className="text-[#3159C1]" /> {lead.phone}</div>
                               {currentUser.role !== 'broker' && (
-                                <div className="mt-2 text-[10px]" onClick={(e) => e.stopPropagation()}>
+                                <div className="mt-2 text-[10px]" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
                                   <select
-                                    value={lead.assignedBrokerId}
+                                    value={lead.assignedBrokerId || ''}
                                     onChange={(e) => handleReassignLead(lead.id, e.target.value)}
                                     className="w-full bg-slate-100 hover:bg-slate-200/80 border border-slate-200/80 text-slate-700 text-[10px] font-bold rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-[#3159C1] cursor-pointer"
                                   >
+                                    <option value="">Fila Geral (Disponível)</option>
                                     {users.map(u => (
                                       <option key={u.id} value={u.id}>
-                                        Corretor: {u.name}
+                                        {u.name} ({u.role === 'admin' ? 'Diretoria' : u.role === 'manager' ? 'Gerente' : 'Corretor'})
                                       </option>
                                     ))}
                                   </select>
@@ -3122,10 +3239,11 @@ export default function Dashboard() {
                       <span className="text-[10px] text-slate-500 block font-bold">CORRETOR RESPONSÁVEL</span>
                       {currentUser.role === 'admin' || currentUser.role === 'manager' ? (
                         <select
-                          value={selectedLead.assignedBrokerId}
+                          value={selectedLead.assignedBrokerId || ''}
                           onChange={(e) => handleReassignLead(selectedLead.id, e.target.value)}
                           className="bg-transparent text-sm font-bold text-[#3159C1] hover:text-[#234294] focus:outline-none cursor-pointer hover:underline py-0.5 border-none p-0 focus:ring-0 max-w-full"
                         >
+                          <option value="">-- Fila Geral (Disponível) --</option>
                           {users.map(u => (
                             <option key={u.id} value={u.id} className="text-slate-800 bg-white font-medium">
                               {u.name} ({u.role === 'admin' ? 'Diretoria' : u.role === 'manager' ? 'Gerente' : 'Corretor'})
@@ -3134,7 +3252,7 @@ export default function Dashboard() {
                         </select>
                       ) : (
                         <span className="text-slate-800 font-bold block mt-0.5">
-                          {users.find(u => u.id === selectedLead.assignedBrokerId)?.name || 'Não atribuído'}
+                          {users.find(u => u.id === selectedLead.assignedBrokerId)?.name || 'Fila Geral (Disponível)'}
                         </span>
                       )}
                     </div>

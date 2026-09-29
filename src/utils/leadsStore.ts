@@ -28,7 +28,7 @@ export interface SupabaseStatus {
   lastChecked?: string;
 }
 
-const CRM_CACHE_VERSION = 'v2.0.0';
+const CRM_CACHE_VERSION = 'v2.1.0';
 
 let currentSupabaseStatus: SupabaseStatus = {
   isConfigured: isSupabaseConfigured,
@@ -106,7 +106,21 @@ export interface Message {
   status?: string;
 }
 
-// Usuários iniciais padrão
+export const BROKER_ID_ALIASES: Record<string, string> = {
+  'amaro-bispo': 'user-1786385737376',
+  'izabel-cristina': 'user-1785958335300',
+  'samira-martins': 'user-1785956983832',
+  'etiene-maria': 'user-1786992379920',
+  'edson-santos': 'user-1787064918108',
+  'jose-edson': 'user-1787064918108',
+};
+
+export const resolveBrokerId = (id: string | null | undefined): string => {
+  if (!id) return "";
+  return BROKER_ID_ALIASES[id] || id;
+};
+
+// Usuários iniciais padrão com IDs oficiais sincronizados com Supabase
 export const INITIAL_USERS: UserCRM[] = [
   {
     id: 'diretoria-lider',
@@ -122,7 +136,7 @@ export const INITIAL_USERS: UserCRM[] = [
     emailNotifications: true
   },
   {
-    id: 'amaro-bispo',
+    id: 'user-1786385737376',
     name: 'Amaro Bispo',
     avatar: '/corretor-amaro-bispo.jpg',
     role: 'broker',
@@ -148,7 +162,7 @@ export const INITIAL_USERS: UserCRM[] = [
     emailNotifications: true
   },
   {
-    id: 'izabel-cristina',
+    id: 'user-1785958335300',
     name: 'Izabel Cristina',
     avatar: '/corretor-izabel-cristina.jpg',
     role: 'broker',
@@ -174,7 +188,7 @@ export const INITIAL_USERS: UserCRM[] = [
     emailNotifications: true
   },
   {
-    id: 'samira-martins',
+    id: 'user-1785956983832',
     name: 'Samira Martins',
     avatar: '/corretor-samira-martins.jpg',
     role: 'broker',
@@ -187,7 +201,7 @@ export const INITIAL_USERS: UserCRM[] = [
     emailNotifications: true
   },
   {
-    id: 'etiene-maria',
+    id: 'user-1786992379920',
     name: 'Etiene Maria',
     avatar: '/corretor-etiene-maria.jpg',
     role: 'broker',
@@ -200,8 +214,8 @@ export const INITIAL_USERS: UserCRM[] = [
     emailNotifications: true
   },
   {
-    id: 'edson-santos',
-    name: 'Edson Santos',
+    id: 'user-1787064918108',
+    name: 'José Edson dos Santos',
     avatar: '/corretor-edson-santos.jpg',
     role: 'broker',
     email: 'edson@liderimobiliaria.com.br',
@@ -548,7 +562,7 @@ export const getUsers = (): UserCRM[] => {
       const parsed = JSON.parse(stored);
       if (parsed && Array.isArray(parsed) && parsed.length > 0) {
         // IDs válidos permitidos (Oficiais + novos criados com id user-*)
-        const validOfficialIds = ['diretoria-lider', 'daiany-martins', 'matheus-souto', 'samira-martins', 'izabel-cristina', 'amaro-bispo', 'etiene-maria', 'edson-santos'];
+        const validOfficialIds = ['diretoria-lider', 'daiany-martins', 'matheus-souto', 'samira-martins', 'izabel-cristina', 'amaro-bispo', 'etiene-maria', 'edson-santos', 'user-1786385737376', 'user-1785958335300', 'user-1785956983832', 'user-1786992379920', 'user-1787064918108', 'user-1787081367783', 'user-1786982729611', 'user-1786989594853', 'user-1787077914481', 'user-1781190796255', 'user-1786978674117'];
         const hasLegacy = parsed.some((u: any) => 
           !validOfficialIds.includes(u.id) && !u.id.startsWith('user-')
         );
@@ -874,25 +888,27 @@ export const addLeadNote = (leadId: string, note: string, authorName?: string): 
     : note;
   const nowIso = new Date().toISOString();
 
-  if (isSupabaseConfigured) {
-    supabase.from('leads').select('notes, attended_at').eq('id', leadId).single().then(({ data }) => {
-      const existingNotes = data?.notes || [];
-      supabase.from('leads').update({
-        notes: [...existingNotes, noteContent],
-        last_activity_at: nowIso,
-        attended_at: data?.attended_at || nowIso
-      }).eq('id', leadId).then();
-    });
-  }
-
   const leads = getLeads().map(l => {
     if (l.id === leadId) {
+      const updatedNotes = [...(l.notes || []), noteContent];
+      const updatedAttendedAt = l.attendedAt || nowIso;
       const updated: Lead = { 
         ...l, 
-        notes: [...l.notes, noteContent],
+        notes: updatedNotes,
         lastActivityAt: nowIso,
-        attendedAt: l.attendedAt || nowIso
+        attendedAt: updatedAttendedAt
       };
+
+      if (isSupabaseConfigured) {
+        supabase.from('leads').update({
+          notes: updatedNotes,
+          last_activity_at: nowIso,
+          attended_at: updatedAttendedAt
+        }).eq('id', leadId).then(({ error }) => {
+          if (error) console.error('[addLeadNote] Erro ao sincronizar nota com Supabase:', error.message);
+        });
+      }
+
       return updated;
     }
     return l;
@@ -1011,29 +1027,35 @@ export const runTransbordoCheck = (overrideMinutes: number = 30): { updatedLeads
 
 export const reassignLead = (leadId: string, newBrokerId: string, changedBy: string): Lead[] => {
   const brokers = getUsers();
-  const newBroker = brokers.find(b => b.id === newBrokerId);
-  const newBrokerName = newBroker ? newBroker.name : newBrokerId;
+  const resolvedBrokerId = resolveBrokerId(newBrokerId);
+  const newBroker = brokers.find(b => b.id === resolvedBrokerId || b.id === newBrokerId);
+  const newBrokerName = newBroker ? newBroker.name : (newBrokerId ? newBrokerId : 'Fila Geral (Disponível)');
   const nowIso = new Date().toISOString();
 
   const leads = getLeads().map(l => {
     if (l.id === leadId) {
-      const oldBroker = brokers.find(b => b.id === l.assignedBrokerId);
-      const oldBrokerName = oldBroker ? oldBroker.name : l.assignedBrokerId;
+      const oldBroker = brokers.find(b => b.id === l.assignedBrokerId || b.id === resolveBrokerId(l.assignedBrokerId));
+      const oldBrokerName = oldBroker ? oldBroker.name : (l.assignedBrokerId ? l.assignedBrokerId : 'Fila Geral (Disponível)');
       const noteText = `Lead reatribuído de ${oldBrokerName} para ${newBrokerName} por ${changedBy} em ${new Date().toLocaleString('pt-BR')}`;
       
+      const updatedNotes = [...(l.notes || []), noteText];
+      const targetDbBrokerId = resolvedBrokerId && resolvedBrokerId !== '' ? resolvedBrokerId : null;
+
       const updated: Lead = { 
         ...l, 
-        assignedBrokerId: newBrokerId,
-        notes: [...l.notes, noteText],
+        assignedBrokerId: resolvedBrokerId || '',
+        notes: updatedNotes,
         lastActivityAt: nowIso
       };
 
       if (isSupabaseConfigured) {
         supabase.from('leads').update({
-          assigned_broker_id: newBrokerId,
-          notes: updated.notes,
+          assigned_broker_id: targetDbBrokerId,
+          notes: updatedNotes,
           last_activity_at: nowIso
-        }).eq('id', leadId).then();
+        }).eq('id', leadId).then(({ error }) => {
+          if (error) console.error('[reassignLead] Erro ao sincronizar reatribuição no Supabase:', error.message);
+        });
       }
 
       return updated;
