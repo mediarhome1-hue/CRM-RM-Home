@@ -10,8 +10,8 @@ const Navbar = ({ variant = 'default' }: { variant?: 'default' | 'transparent' }
 
   const isTransparent = variant === 'transparent';
   const navBgClass = isTransparent ? 'bg-transparent' : 'bg-white/90 backdrop-blur-md border-b border-gray-100';
-  const logoFilter = isTransparent ? 'none' : 'brightness(0) saturate(100%) invert(28%) sepia(87%) saturate(1630%) hue-rotate(209deg) brightness(84%) contrast(89%)';
   const menuBtnClass = isTransparent ? 'text-white hover:bg-white/10' : 'text-primary hover:bg-gray-100';
+  const logoSrc = isTransparent ? '/Novo Logotipo Lider Branco.svg' : '/Novo Logotipo Lider Azul.svg';
 
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 py-4 md:py-6 transition-all ${navBgClass}`}>
@@ -19,11 +19,10 @@ const Navbar = ({ variant = 'default' }: { variant?: 'default' | 'transparent' }
         {/* Logo */}
         <Link href="/" className="relative w-[140px] h-[45px] md:w-[240px] md:h-[80px]">
           <Image 
-            src="/Logotipo Lider Branco.svg" 
+            src={logoSrc} 
             alt="Líder Imobiliária" 
             fill
             className="object-contain object-left"
-            style={{ filter: logoFilter }}
             priority
           />
         </Link>

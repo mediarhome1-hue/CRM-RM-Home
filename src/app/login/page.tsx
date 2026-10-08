@@ -141,11 +141,10 @@ export default function Login() {
         <div className="text-center mb-8 flex flex-col items-center">
           <div className="relative w-[180px] h-[60px] mb-6">
             <Image
-              src="/Logotipo Lider Branco.svg"
+              src="/Novo Logotipo Lider Azul.svg"
               alt="Líder Imobiliária"
               fill
               className="object-contain"
-              style={{ filter: 'brightness(0) saturate(100%) invert(28%) sepia(87%) saturate(1630%) hue-rotate(209deg) brightness(84%) contrast(89%)' }}
               priority
             />
           </div>

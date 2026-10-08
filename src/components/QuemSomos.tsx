@@ -157,14 +157,10 @@ const QuemSomos = () => {
             {/* Logo Líder */}
             <div className="relative w-[200px] h-[68px]">
               <Image
-                src="/Logotipo Lider Branco.svg"
+                src="/Novo Logotipo Lider Azul.svg"
                 alt="Líder Imobiliária"
                 fill
                 className="object-contain object-center"
-                style={{
-                  filter:
-                    'brightness(0) saturate(100%) invert(28%) sepia(87%) saturate(1630%) hue-rotate(209deg) brightness(84%) contrast(89%)',
-                }}
               />
             </div>
 

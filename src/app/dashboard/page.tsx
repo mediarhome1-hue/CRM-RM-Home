@@ -1382,11 +1382,10 @@ export default function Dashboard() {
           </button>
           <div className="relative w-[100px] h-[32px]">
             <Image 
-              src="/Logotipo Lider Branco.svg" 
+              src="/Novo Logotipo Lider Azul.svg" 
               alt="Líder Imobiliária" 
               fill 
               className="object-contain object-left" 
-              style={{ filter: 'brightness(0) saturate(100%) invert(28%) sepia(87%) saturate(1630%) hue-rotate(209deg) brightness(84%) contrast(89%)' }}
             />
           </div>
         </div>
@@ -1409,11 +1408,10 @@ export default function Dashboard() {
         <div className="hidden md:flex p-6 border-b border-slate-200/60 items-center justify-between">
           <div className="relative w-[120px] h-[40px]">
             <Image 
-              src="/Logotipo Lider Branco.svg" 
+              src="/Novo Logotipo Lider Azul.svg" 
               alt="Líder Imobiliária" 
               fill 
               className="object-contain object-left" 
-              style={{ filter: 'brightness(0) saturate(100%) invert(28%) sepia(87%) saturate(1630%) hue-rotate(209deg) brightness(84%) contrast(89%)' }}
             />
           </div>
           <span className="text-[10px] font-black bg-[#3159C1]/10 border border-[#3159C1]/20 px-2 py-1 rounded text-[#3159C1]">CRM GESTÃO</span>
@@ -1594,7 +1592,7 @@ export default function Dashboard() {
                             {onlineBrokers.length > 0 ? (
                               onlineBrokers.map(b => (
                                 <div key={b.id} className="flex items-center gap-2.5">
-                                  <img src={b.avatar || '/Logotipo Lider.svg'} alt={b.name} className="w-7 h-7 rounded-full object-cover border border-green-500/25" />
+                                  <img src={b.avatar || '/Novo Logotipo Lider Azul.svg'} alt={b.name} className="w-7 h-7 rounded-full object-cover border border-green-500/25" />
                                   <div className="overflow-hidden flex-1 min-w-0">
                                     <p className="text-xs font-bold text-slate-800 truncate">{b.name}</p>
                                     <span className="text-[9px] text-green-600 font-bold uppercase tracking-wider">● Online no CRM</span>
@@ -1621,7 +1619,7 @@ export default function Dashboard() {
                             {onlineLeaders.length > 0 ? (
                               onlineLeaders.map(l => (
                                 <div key={l.id} className="flex items-center gap-2.5">
-                                  <img src={l.avatar || '/Logotipo Lider.svg'} alt={l.name} className="w-7 h-7 rounded-full object-cover border border-blue-500/25" />
+                                  <img src={l.avatar || '/Novo Logotipo Lider Azul.svg'} alt={l.name} className="w-7 h-7 rounded-full object-cover border border-blue-500/25" />
                                   <div className="overflow-hidden flex-1 min-w-0">
                                     <p className="text-xs font-bold text-slate-800 truncate">{l.name}</p>
                                     <span className="text-[9px] text-blue-600 font-bold uppercase tracking-wider">
