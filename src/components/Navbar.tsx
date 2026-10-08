@@ -28,7 +28,7 @@ const Navbar = ({ variant = 'default' }: { variant?: 'default' | 'transparent' }
         </Link>
 
         {/* Desktop Menu Capsule */}
-        <div className="hidden md:flex items-center bg-primary rounded-2xl px-2 py-2 shadow-lg border border-white/10">
+        <div className="hidden md:flex items-center bg-[#0a44e9] rounded-2xl px-2 py-2 shadow-lg border border-white/10">
           <NavLink href="#quem-somos">Sobre</NavLink>
           <NavLink href="#eventos">Eventos</NavLink>
           <NavLink href="/#imoveis">Imóveis</NavLink>

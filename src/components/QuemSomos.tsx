@@ -198,7 +198,7 @@ const QuemSomos = () => {
               target="_blank"
               rel="noopener noreferrer"
               id="btn-inscreva-se"
-              className="inline-flex items-center gap-2 px-10 py-3 rounded-full bg-primary text-white font-bold text-[15px] tracking-wide hover:bg-[#254faa] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 shadow-md"
+              className="inline-flex items-center gap-2 px-10 py-3 rounded-full bg-[#0a44e9] text-white font-bold text-[15px] tracking-wide hover:bg-[#0836c4] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 shadow-md"
             >
               {/* Ícone YouTube */}
               <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
