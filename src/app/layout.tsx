@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     default: "Líder Imobiliária - A Melhor Experiência na Realização do Sonho da Casa Própria",
     template: "%s | Líder Imobiliária"
   },
-  description: "Na Líder Imobiliária, você tem suporte completo, carteira de imóveis exclusiva e uma equipe de corretores apaixonada pelo que faz. Aqui na Líder Nossa Meta é Realizar o Seu Sonho!",
+  description: "Na Líder Imobiliária, você tem suporte completo, carteira de imóveis exclusiva e uma equipe de corretores apaixonada pelo que faz. Seu sonho de morar bem começa na Líder!",
   keywords: [
     "Líder Imobiliária",
     "Imobiliária Pernambuco",
@@ -61,7 +61,7 @@ export const metadata: Metadata = {
     url: SITE_URL,
     siteName: "Líder Imobiliária PE",
     title: "Líder Imobiliária - A Melhor Experiência na Realização do Sonho da Casa Própria",
-    description: "Na Líder Imobiliária, você tem suporte completo, carteira de imóveis exclusiva e uma equipe de corretores apaixonada pelo que faz. Aqui na Líder Nossa Meta é Realizar o Seu Sonho!",
+    description: "Na Líder Imobiliária, você tem suporte completo, carteira de imóveis exclusiva e uma equipe de corretores apaixonada pelo que faz. Seu sonho de morar bem começa na Líder!",
     images: [
       {
         url: `${SITE_URL}/prop1.jpg`,
@@ -74,7 +74,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Líder Imobiliária - A Melhor Experiência na Realização do Sonho da Casa Própria",
-    description: "Na Líder Imobiliária, você tem suporte completo, carteira de imóveis exclusiva e uma equipe de corretores apaixonada pelo que faz. Aqui na Líder Nossa Meta é Realizar o Seu Sonho!",
+    description: "Na Líder Imobiliária, você tem suporte completo, carteira de imóveis exclusiva e uma equipe de corretores apaixonada pelo que faz. Seu sonho de morar bem começa na Líder!",
     images: [`${SITE_URL}/prop1.jpg`],
   },
   verification: {
