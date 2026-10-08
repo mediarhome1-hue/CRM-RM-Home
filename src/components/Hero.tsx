@@ -45,8 +45,8 @@ const Hero = () => {
               className="mb-10 md:mb-16 w-full"
             >
               <h1 className="text-[38px] sm:text-[48px] md:text-[60px] lg:text-[68px] font-black text-[#0a44e9] leading-[1.1]" style={{ color: "#0a44e9" }}>
-                Seu sonho de <br />
-                morar bem <br />
+                Seu sonho <br />
+                de morar bem <br />
                 começa na Líder!
               </h1>
             </motion.div>
