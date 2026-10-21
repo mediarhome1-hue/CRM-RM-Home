@@ -324,8 +324,8 @@ export async function POST(req: Request) {
         // Disparo assíncrono de notificação por WhatsApp (sem travar a resposta da requisição)
         const assignedUser = users?.find(u => u.id === assignedBrokerId);
         if (assignedUser && assignedUser.phone) {
-          const textNotification = `🚨 *NOVO LEAD ATRIBUÍDO NO CRM LÍDER!*\n\n👤 *Cliente:* ${name}\n📱 *Contato:* ${phone}\n🏠 *Interesse:* ${formName}\n\n👉 Acesse o CRM para atender: https://www.liderimobiliariape.com.br/dashboard`;
-          const notifyUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.liderimobiliariape.com.br'}/api/whatsapp/send`;
+          const textNotification = `🚨 *NOVO LEAD ATRIBUÍDO NO CRM LÍDER!*\n\n👤 *Cliente:* ${name}\n📱 *Contato:* ${phone}\n🏠 *Interesse:* ${formName}\n\n👉 Acesse o CRM para atender: https://www.rmhomeimobiliaria.com/dashboard`;
+          const notifyUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.rmhomeimobiliaria.com'}/api/whatsapp/send`;
 
           fetch(notifyUrl, {
             method: 'POST',

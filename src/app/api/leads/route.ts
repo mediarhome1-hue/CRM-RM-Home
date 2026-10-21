@@ -25,7 +25,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const safePropertyName = (propertyName || 'Imóvel Site Líder').trim();
+    const safePropertyName = (propertyName || 'Imóvel Site RM Home').trim();
     const safePropertyBg = propertyBg || 'bg-[#00a0e3]';
 
     // 2. Carregar corretores do Supabase para saber quem está online no momento

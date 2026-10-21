@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://www.liderimobiliariape.com.br';
+  const baseUrl = 'https://www.rmhomeimobiliaria.com';
 
   return [
     {

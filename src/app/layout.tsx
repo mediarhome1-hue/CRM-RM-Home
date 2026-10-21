@@ -10,17 +10,18 @@ const montserrat = Montserrat({
   variable: "--font-montserrat",
 });
 
-const SITE_URL = "https://www.liderimobiliariape.com.br";
+const SITE_URL = "https://www.rmhomeimobiliaria.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Líder Imobiliária - A Melhor Experiência na Realização do Sonho da Casa Própria",
-    template: "%s | Líder Imobiliária"
+    default: "RM Home Imobiliária - A Melhor Experiência na Realização do Sonho da Casa Própria",
+    template: "%s | RM Home Imobiliária"
   },
-  description: "Na Líder Imobiliária, você tem suporte completo, carteira de imóveis exclusiva e uma equipe de corretores apaixonada pelo que faz. Seu sonho de morar bem começa na Líder!",
+  description: "Na RM Home Imobiliária, você tem suporte completo, carteira de imóveis exclusiva e uma equipe de corretores apaixonada pelo que faz. Seu sonho de morar bem começa na RM Home!",
   keywords: [
-    "Líder Imobiliária",
+    "RM Home Imobiliária",
+    "RM Home",
     "Imobiliária Pernambuco",
     "Imobiliária Recife",
     "Imobiliária Paulista",
@@ -33,9 +34,9 @@ export const metadata: Metadata = {
     "Bela Vista Imobiliária",
     "Caixa Econômica Imóveis"
   ],
-  authors: [{ name: "Líder Imobiliária", url: SITE_URL }],
-  creator: "Líder Imobiliária",
-  publisher: "Líder Imobiliária PE",
+  authors: [{ name: "RM Home Imobiliária", url: SITE_URL }],
+  creator: "RM Home Imobiliária",
+  publisher: "RM Home Imobiliária",
   formatDetection: {
     telephone: true,
     address: true,
@@ -59,22 +60,22 @@ export const metadata: Metadata = {
     type: "website",
     locale: "pt_BR",
     url: SITE_URL,
-    siteName: "Líder Imobiliária PE",
-    title: "Líder Imobiliária - A Melhor Experiência na Realização do Sonho da Casa Própria",
-    description: "Na Líder Imobiliária, você tem suporte completo, carteira de imóveis exclusiva e uma equipe de corretores apaixonada pelo que faz. Seu sonho de morar bem começa na Líder!",
+    siteName: "RM Home Imobiliária",
+    title: "RM Home Imobiliária - A Melhor Experiência na Realização do Sonho da Casa Própria",
+    description: "Na RM Home Imobiliária, você tem suporte completo, carteira de imóveis exclusiva e uma equipe de corretores apaixonada pelo que faz. Seu sonho de morar bem começa na RM Home!",
     images: [
       {
         url: `${SITE_URL}/prop1.jpg`,
         width: 1200,
         height: 630,
-        alt: "Líder Imobiliária Pernambuco - Realizando o Seu Sonho da Casa Própria",
+        alt: "RM Home Imobiliária Pernambuco - Realizando o Seu Sonho da Casa Própria",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Líder Imobiliária - A Melhor Experiência na Realização do Sonho da Casa Própria",
-    description: "Na Líder Imobiliária, você tem suporte completo, carteira de imóveis exclusiva e uma equipe de corretores apaixonada pelo que faz. Seu sonho de morar bem começa na Líder!",
+    title: "RM Home Imobiliária - A Melhor Experiência na Realização do Sonho da Casa Própria",
+    description: "Na RM Home Imobiliária, você tem suporte completo, carteira de imóveis exclusiva e uma equipe de corretores apaixonada pelo que faz. Seu sonho de morar bem começa na RM Home!",
     images: [`${SITE_URL}/prop1.jpg`],
   },
   verification: {
@@ -90,8 +91,8 @@ export default function RootLayout({
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "RealEstateAgent",
-    "name": "Líder Imobiliária PE",
-    "image": `${SITE_URL}/logotipo-lider-branco.png`,
+    "name": "RM Home Imobiliária",
+    "image": `${SITE_URL}/logotipo-rm-home.png`,
     "@id": SITE_URL,
     "url": SITE_URL,
     "telephone": "+5581983241960",

@@ -20,7 +20,7 @@ const sendEmail = async (to: string, subject: string, html: string): Promise<{ s
   }
 };
 
-// Layout padrão de email com a identidade visual da Líder Imobiliária
+// Layout padrão de email com a identidade visual da RM Home Imobiliária
 const getBaseHtml = (title: string, content: string) => `
 <!DOCTYPE html>
 <html>
@@ -46,14 +46,14 @@ const getBaseHtml = (title: string, content: string) => `
 <body>
   <div class="container">
     <div class="header">
-      <img src="https://www.liderimobiliariape.com.br/logotipo-lider-branco.png" alt="Líder Imobiliária" style="height: 50px; width: auto; max-width: 100%; display: block; margin: 0 auto;" />
+      <img src="https://www.rmhomeimobiliaria.com/logotipo-rm-home-branco.png" alt="RM Home Imobiliária" style="height: 50px; width: auto; max-width: 100%; display: block; margin: 0 auto;" />
     </div>
     <div class="content">
       ${content}
     </div>
     <div class="footer">
-      Este é um e-mail automático enviado pelo CRM da Líder Imobiliária.<br>
-      © ${new Date().getFullYear()} Líder Imobiliária. Todos os direitos reservados.
+      Este é um e-mail automático enviado pelo CRM da RM Home Imobiliária.<br>
+      © ${new Date().getFullYear()} RM Home Imobiliária. Todos os direitos reservados.
     </div>
   </div>
 </body>
@@ -69,7 +69,7 @@ export const sendProfileUpdateEmail = async (user: UserCRM, updatedFields: strin
     'Alerta de Segurança: Perfil Atualizado',
     `
     <h2>Olá, ${user.name}!</h2>
-    <p>Detectamos que dados importantes do seu perfil cadastral no CRM Líder foram modificados recentemente. Esta é uma notificação automática para sua segurança.</p>
+    <p>Detectamos que dados importantes do seu perfil cadastral no CRM RM Home foram modificados recentemente. Esta é uma notificação automática para sua segurança.</p>
     
     <div class="detail-card">
       <h3 style="margin-top: 0; font-size: 16px; color: #0f172a;">Campos Modificados</h3>
@@ -78,10 +78,10 @@ export const sendProfileUpdateEmail = async (user: UserCRM, updatedFields: strin
       </ul>
     </div>
     
-    <p>Se foi você quem fez essa alteração, nenhuma ação é necessária. Caso não reconheça essa atividade, entre em contato imediatamente com a direção geral do CRM Líder para proteger seu acesso.</p>
+    <p>Se foi você quem fez essa alteração, nenhuma ação é necessária. Caso não reconheça essa atividade, entre em contato imediatamente com a direção geral do CRM RM Home para proteger seu acesso.</p>
     <br>
     <div style="text-align: center;">
-      <a href="https://www.liderimobiliariape.com.br/login" class="button">Acessar CRM</a>
+      <a href="https://www.rmhomeimobiliaria.com/login" class="button">Acessar CRM</a>
     </div>
     `
   );
@@ -97,7 +97,7 @@ export const sendPasswordResetEmail = async (user: UserCRM, newPassword: string)
     'Suas Credenciais Foram Redefinidas',
     `
     <h2>Olá, ${user.name}!</h2>
-    <p>Sua senha de acesso ao CRM da Líder Imobiliária foi redefinida pela Diretoria Administrativa. Suas novas credenciais estão listadas abaixo.</p>
+    <p>Sua senha de acesso ao CRM da RM Home Imobiliária foi redefinida pela Diretoria Administrativa. Suas novas credenciais estão listadas abaixo.</p>
     
     <div class="detail-card">
       <h3 style="margin-top: 0; font-size: 16px; color: #0f172a;">Credenciais de Acesso</h3>
@@ -112,12 +112,12 @@ export const sendPasswordResetEmail = async (user: UserCRM, newPassword: string)
     <p style="color: #e11d48; font-weight: bold; font-size: 13px;">Recomendação de segurança: Entre no sistema utilizando as credenciais acima e redefina sua senha para uma de sua preferência na aba "Minha Conta".</p>
     <br>
     <div style="text-align: center;">
-      <a href="https://www.liderimobiliariape.com.br/login" class="button">Logar no CRM</a>
+      <a href="https://www.rmhomeimobiliaria.com/login" class="button">Logar no CRM</a>
     </div>
     `
   );
 
-  return sendEmail(user.email, 'CRM Líder - Suas Credenciais Foram Atualizadas', html);
+  return sendEmail(user.email, 'CRM RM Home - Suas Credenciais Foram Atualizadas', html);
 };
 
 /**
@@ -125,10 +125,10 @@ export const sendPasswordResetEmail = async (user: UserCRM, newPassword: string)
  */
 export const sendWelcomeEmail = async (user: UserCRM, passwordProvided: string): Promise<{ success: boolean; error?: string }> => {
   const html = getBaseHtml(
-    'Bem-vindo ao CRM Líder Imobiliária!',
+    'Bem-vindo ao CRM RM Home Imobiliária!',
     `
     <h2>Seja bem-vindo(a), ${user.name}!</h2>
-    <p>Seu cadastro no <strong>CRM da Líder Imobiliária</strong> foi concluído com sucesso. Agora você tem acesso completo ao nosso sistema para acompanhamento de leads, gestão de clientes e atendimento integrado via WhatsApp.</p>
+    <p>Seu cadastro no <strong>CRM da RM Home Imobiliária</strong> foi concluído com sucesso. Agora você tem acesso completo ao nosso sistema para acompanhamento de leads, gestão de clientes e atendimento integrado via WhatsApp.</p>
     
     <div class="detail-card">
       <h3 style="margin-top: 0; font-size: 16px; color: #0f172a;">Suas Credenciais de Acesso</h3>
@@ -143,10 +143,10 @@ export const sendWelcomeEmail = async (user: UserCRM, passwordProvided: string):
     <p>Para sua segurança, recomendamos acessar a aba <strong>"Minha Conta"</strong> logo após seu primeiro login para personalizar sua senha e dados do perfil.</p>
     <br>
     <div style="text-align: center;">
-      <a href="https://www.liderimobiliariape.com.br/login" class="button">Acessar a Plataforma CRM</a>
+      <a href="https://www.rmhomeimobiliaria.com/login" class="button">Acessar a Plataforma CRM</a>
     </div>
     `
   );
 
-  return sendEmail(user.email, '🚀 Bem-vindo ao CRM Líder Imobiliária - Acesso ao Sistema', html);
+  return sendEmail(user.email, '🚀 Bem-vindo ao CRM RM Home Imobiliária - Acesso ao Sistema', html);
 };

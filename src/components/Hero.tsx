@@ -11,7 +11,7 @@ const Hero = () => {
       <div className="hidden md:block absolute inset-0 z-0 opacity-80 pointer-events-none max-w-[1440px] mx-auto px-6 md:px-12">
         <div className="relative w-full h-full">
           <Image 
-            src="/Marcadagualogolider.svg"
+            src="/logo-rm.png"
             alt="Watermark Shield"
             fill
             className="object-contain object-right py-8"
@@ -24,7 +24,7 @@ const Hero = () => {
       <div className="md:hidden absolute inset-0 z-0 opacity-80 pointer-events-none flex items-center justify-center p-8">
         <div className="relative w-full h-[60%]">
           <Image 
-            src="/Marcadagualogolider.svg"
+            src="/logo-rm.png"
             alt="Watermark Shield"
             fill
             className="object-contain object-center"
@@ -47,7 +47,7 @@ const Hero = () => {
               <h1 className="text-[38px] sm:text-[48px] md:text-[60px] lg:text-[68px] font-black text-[#0a44e9] leading-[1.1]" style={{ color: "#0a44e9" }}>
                 Seu sonho <br />
                 de morar bem <br />
-                começa na Líder!
+                começa na RM Home!
               </h1>
             </motion.div>
 

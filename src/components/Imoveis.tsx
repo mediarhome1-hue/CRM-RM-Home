@@ -117,7 +117,7 @@ export default function Imoveis() {
         <div className="hidden md:block absolute inset-0 z-0 opacity-80 pointer-events-none max-w-[1440px] mx-auto px-6 md:px-12">
           <div className="relative w-full h-full">
             <Image 
-              src="/Marcadagualogolider.svg"
+              src="/logo-rm.png"
               alt="Watermark Shield"
               fill
               className="object-contain object-right py-8"
@@ -129,7 +129,7 @@ export default function Imoveis() {
         <div className="md:hidden absolute inset-0 z-0 opacity-80 pointer-events-none flex items-center justify-center p-8">
           <div className="relative w-full h-[60%]">
             <Image 
-              src="/Marcadagualogolider.svg"
+              src="/logo-rm.png"
               alt="Watermark Shield"
               fill
               className="object-contain object-center"

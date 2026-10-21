@@ -5,13 +5,13 @@ import { motion } from 'framer-motion';
 import Image from 'next/image';
 
 const corretores = [
-  { id: 1,  nome: 'Amaro',    sobrenome: 'Bispo',    creci: 'CRECI 21226', foto: '/corretor-amaro-bispo.jpg',       instagram: 'https://www.instagram.com/amaro_bispo_imoveis/',                           whatsapp: 'https://wa.me/5581983241960?text=Ol%C3%A1%20Amaro%2C%20vim%20atrav%C3%A9s%20do%20site%20da%20*L%C3%ADder%20Imobili%C3%A1ria*%20gostaria%20de%20saber%20sobre%20im%C3%B3veis...' },
-  { id: 2,  nome: 'Daiany',   sobrenome: 'Martins',  creci: 'CRECI 21245', foto: '/corretor-daiany.jpg',            instagram: 'https://www.instagram.com/daiany_corretora?igsh=MWVpNzl1Zm9jc2c3MA==',       whatsapp: 'https://wa.me/5581981844018?text=Ol%C3%A1%20Daiany%2C%20vim%20atrav%C3%A9s%20do%20site%20da%20*L%C3%ADder%20Imobili%C3%A1ria%2C%20gostaria%20de%20saber%20mais%20sobre%20im%C3%B3veis...' },
-  { id: 3,  nome: 'Edson',    sobrenome: 'Santos',   creci: 'CRECI 22429', foto: '/corretor-edson-santos.jpg',      instagram: 'https://www.instagram.com/dossantosjoseedson.corretor?igsi=MWcyZ2ptNjl5ajdwMw==', whatsapp: 'https://wa.me/5581989723403?text=Ol%C3%A1%20Edson%2C%20vim%20atrav%C3%A9s%20do%20site%20da%20*L%C3%ADder%20Imobili%C3%A1ria*%2C%20gostaria%20de%20saber%20mais%20sobre%20im%C3%B3veis...' },
-  { id: 4,  nome: 'Etiene',   sobrenome: 'Maria',    creci: 'CRECI 20225', foto: '/corretor-etiene-maria.jpg',      instagram: 'https://www.instagram.com/etienecostta/',                                 whatsapp: 'https://wa.me/5581992155537?text=Ol%C3%A1%20Etiene%2C%20vim%20atrav%C3%A9s%20do%20site%20da%20*L%C3%ADder%20Imobili%C3%A1ria*%20gostaria%20de%20saber%20mais%20sobre%20im%C3%B3veis...' },
-  { id: 5,  nome: 'Izabel',   sobrenome: 'Cristina', creci: 'CRECI 22925', foto: '/corretor-izabel-cristina.jpg',   instagram: 'https://www.instagram.com/izabelcristina__corretora/',                     whatsapp: 'https://wa.me/5581986116336?text=Ol%C3%A1%20Izabel%2C%20vim%20atrav%C3%A9s%20do%20site%20da%20L%C3%ADder%20Imobili%C3%A1ria%2C%20gostaria%20de%20saber%20mais%20sobre%20im%C3%B3veis...' },
-  { id: 6,  nome: 'Matheus',  sobrenome: 'Souto',    creci: 'CRECI 21612', foto: '/corretor-matheus-souto.jpg',    instagram: 'https://www.instagram.com/matheussouto.ci?igsh=MTlvMnlpc3JyeDFsbQ==',       whatsapp: 'https://wa.me/5581988643830?text=Ol%C3%A1%20Matheus%2C%20vim%20atrav%C3%A9s%20do%20site%20da%20L%C3%ADder%20Imobili%C3%A1ria...' },
-  { id: 7,  nome: 'Samira',   sobrenome: 'Martins',  creci: 'CRECI 23592', foto: '/corretor-samira-martins.jpg',   instagram: 'https://www.instagram.com/samira.martins.corretora/',                       whatsapp: 'https://wa.me/5581973225711?text=Ol%C3%A1%20Samira%20vim%20atrav%C3%A9s%20do%20site%20da%20L%C3%ADder%20Imobili%C3%A1ria%2C%20gostaria%20de%20saber%20mais%20sobre%20im%C3%B3veis...' },
+  { id: 1,  nome: 'Amaro',    sobrenome: 'Bispo',    creci: 'CRECI 21226', foto: '/corretor-amaro-bispo.jpg',       instagram: 'https://www.instagram.com/amaro_bispo_imoveis/',                           whatsapp: 'https://wa.me/5581983241960?text=Ol%C3%A1%20Amaro%2C%20vim%20atrav%C3%A9s%20do%20site%20da%20*RM%20Home%20Imobili%C3%A1ria*%20gostaria%20de%20saber%20sobre%20im%C3%B3veis...' },
+  { id: 2,  nome: 'Daiany',   sobrenome: 'Martins',  creci: 'CRECI 21245', foto: '/corretor-daiany.jpg',            instagram: 'https://www.instagram.com/daiany_corretora?igsh=MWVpNzl1Zm9jc2c3MA==',       whatsapp: 'https://wa.me/5581981844018?text=Ol%C3%A1%20Daiany%2C%20vim%20atrav%C3%A9s%20do%20site%20da%20*RM%20Home%20Imobili%C3%A1ria%2C%20gostaria%20de%20saber%20mais%20sobre%20im%C3%B3veis...' },
+  { id: 3,  nome: 'Edson',    sobrenome: 'Santos',   creci: 'CRECI 22429', foto: '/corretor-edson-santos.jpg',      instagram: 'https://www.instagram.com/dossantosjoseedson.corretor?igsi=MWcyZ2ptNjl5ajdwMw==', whatsapp: 'https://wa.me/5581989723403?text=Ol%C3%A1%20Edson%2C%20vim%20atrav%C3%A9s%20do%20site%20da%20*RM%20Home%20Imobili%C3%A1ria*%2C%20gostaria%20de%20saber%20mais%20sobre%20im%C3%B3veis...' },
+  { id: 4,  nome: 'Etiene',   sobrenome: 'Maria',    creci: 'CRECI 20225', foto: '/corretor-etiene-maria.jpg',      instagram: 'https://www.instagram.com/etienecostta/',                                 whatsapp: 'https://wa.me/5581992155537?text=Ol%C3%A1%20Etiene%2C%20vim%20atrav%C3%A9s%20do%20site%20da%20*RM%20Home%20Imobili%C3%A1ria*%20gostaria%20de%20saber%20mais%20sobre%20im%C3%B3veis...' },
+  { id: 5,  nome: 'Izabel',   sobrenome: 'Cristina', creci: 'CRECI 22925', foto: '/corretor-izabel-cristina.jpg',   instagram: 'https://www.instagram.com/izabelcristina__corretora/',                     whatsapp: 'https://wa.me/5581986116336?text=Ol%C3%A1%20Izabel%2C%20vim%20atrav%C3%A9s%20do%20site%20da%20RM%20Home%20Imobili%C3%A1ria%2C%20gostaria%20de%20saber%20mais%20sobre%20im%C3%B3veis...' },
+  { id: 6,  nome: 'Matheus',  sobrenome: 'Souto',    creci: 'CRECI 21612', foto: '/corretor-matheus-souto.jpg',    instagram: 'https://www.instagram.com/matheussouto.ci?igsh=MTlvMnlpc3JyeDFsbQ==',       whatsapp: 'https://wa.me/5581988643830?text=Ol%C3%A1%20Matheus%2C%20vim%20atrav%C3%A9s%20do%20site%20da%20RM%20Home%20Imobili%C3%A1ria...' },
+  { id: 7,  nome: 'Samira',   sobrenome: 'Martins',  creci: 'CRECI 23592', foto: '/corretor-samira-martins.jpg',   instagram: 'https://www.instagram.com/samira.martins.corretora/',                       whatsapp: 'https://wa.me/5581973225711?text=Ol%C3%A1%20Samira%20vim%20atrav%C3%A9s%20do%20site%20da%20RM%20Home%20Imobili%C3%A1ria%2C%20gostaria%20de%20saber%20mais%20sobre%20im%C3%B3veis...' },
 ];
 
 /* ───── Ícone Instagram ───── */
@@ -103,7 +103,7 @@ const QuemSomos = () => {
       <div className="hidden md:block absolute inset-0 z-0 opacity-[0.06] pointer-events-none">
         <div className="relative w-full h-full max-w-[1440px] mx-auto px-6 md:px-12">
           <Image
-            src="/Marcadagualogolider.svg"
+            src="/logo-rm.png"
             alt=""
             fill
             aria-hidden="true"
@@ -157,8 +157,8 @@ const QuemSomos = () => {
             {/* Logo Líder */}
             <div className="relative w-[200px] h-[68px]">
               <Image
-                src="/Novo Logotipo Lider Azul.svg"
-                alt="Líder Imobiliária"
+                src="/logotipo-rm-home.png"
+                alt="RM Home Imobiliária"
                 fill
                 className="object-contain object-center"
               />
@@ -170,7 +170,7 @@ const QuemSomos = () => {
             <div className="w-full rounded-2xl overflow-hidden shadow-xl border border-gray-100 aspect-video">
               <iframe
                 src="https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0&modestbranding=1"
-                title="Vídeo Líder Imobiliária"
+                title="Vídeo RM Home Imobiliária"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
                 className="w-full h-full"
@@ -185,7 +185,7 @@ const QuemSomos = () => {
                 em Pernambuco!
               </p>
               <p className="text-gray-500 text-[15px] leading-relaxed">
-                Na <strong className="text-primary font-semibold">Líder Imobiliária</strong>, você tem suporte completo,
+                Na <strong className="text-primary font-semibold">RM Home Imobiliária</strong>, você tem suporte completo,
                 carteira de imóveis exclusiva e uma equipe apaixonada pelo que faz.
                 Se você é corretor e quer crescer de verdade —{' '}
                 <strong className="text-foreground">este é o seu lugar.</strong>

@@ -15,7 +15,7 @@ export default function PromocoesPage() {
         <div className="relative w-full h-full flex justify-end">
           <div className="relative w-[80%] h-full">
             <Image 
-              src="/Marcadagualogolider.svg"
+              src="/logo-rm.png"
               alt="Watermark Shield"
               fill
               className="object-contain object-right py-8"
@@ -29,7 +29,7 @@ export default function PromocoesPage() {
       <div className="md:hidden absolute inset-0 z-0 opacity-70 mix-blend-multiply pointer-events-none flex items-center justify-center p-8">
         <div className="relative w-full h-[60%]">
           <Image 
-            src="/Marcadagualogolider.svg"
+            src="/logo-rm.png"
             alt="Watermark Shield"
             fill
             className="object-contain object-center"
@@ -79,7 +79,7 @@ export default function PromocoesPage() {
               <div className="relative w-full max-w-[500px] lg:max-w-[650px] aspect-square">
                 <Image 
                   src="/echo-urna.png"
-                  alt="Echo Show 5 e Urna Líder"
+                  alt="Echo Show 5 e Urna RM Home"
                   fill
                   className="object-contain object-center md:object-right"
                   priority

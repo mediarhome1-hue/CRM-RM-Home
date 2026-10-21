@@ -41,7 +41,7 @@ export default function Eventos() {
         <div className="absolute right-0 bottom-0 opacity-80 pointer-events-none translate-x-1/4 translate-y-1/4">
           <div className="relative w-[800px] h-[800px] md:w-[1200px] md:h-[1200px]">
             <Image 
-              src="/Marcadagualogolider.svg"
+              src="/logo-rm.png"
               alt=""
               fill
               className="object-contain"
@@ -63,7 +63,7 @@ export default function Eventos() {
               <div className="mb-12">
                 <h2 className="text-4xl md:text-5xl font-semibold text-primary mb-2">Eventos</h2>
                 <p className="text-gray-400 font-medium max-w-[600px] text-lg">
-                  Fique por dentro dos eventos que a líder imobiliária realiza e participe!!
+                  Fique por dentro dos eventos que a RM Home Imobiliária realiza e participe!!
                 </p>
               </div>
 

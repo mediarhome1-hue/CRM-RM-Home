@@ -91,7 +91,7 @@ export default function LeadModal({ isOpen, onClose, propertyName, propertyBg }:
   // Link direto de WhatsApp com o corretor responsável
   const brokerWhatsAppLink = assignedBroker?.phone
     ? `https://wa.me/55${assignedBroker.phone.replace(/\D/g, '').replace(/^55/, '')}?text=${encodeURIComponent(
-        `Olá ${assignedBroker.name.split(' ')[0]}, acabei de preencher a ficha no site da Líder para o imóvel *${propertyName}* e gostaria de receber a simulação!`
+        `Olá ${assignedBroker.name.split(' ')[0]}, acabei de preencher a ficha no site da RM Home para o imóvel *${propertyName}* e gostaria de receber a simulação!`
       )}`
     : null;
 

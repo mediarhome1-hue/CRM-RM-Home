@@ -141,15 +141,15 @@ export default function Login() {
         <div className="text-center mb-8 flex flex-col items-center">
           <div className="relative w-[180px] h-[60px] mb-6">
             <Image
-              src="/Novo Logotipo Lider Azul.svg"
-              alt="Líder Imobiliária"
+              src="/logotipo-rm-home.png"
+              alt="RM Home Imobiliária"
               fill
               className="object-contain"
               priority
             />
           </div>
           <span className="text-xs font-black tracking-widest text-[#3159C1] uppercase bg-[#3159C1]/10 px-4 py-1.5 rounded-full mb-3 border border-[#3159C1]/20">
-            Área do CRM Líder
+            Área do CRM RM Home
           </span>
           <h2 className="text-2xl font-black text-slate-800 leading-tight">Acesso ao Sistema</h2>
           <p className="text-slate-500 text-sm mt-1 font-medium">Insira suas credenciais para entrar no ambiente</p>

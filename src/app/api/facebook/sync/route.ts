@@ -51,7 +51,7 @@ export async function GET() {
           const pageData = await pageRes.json();
           if (pageData.access_token) {
             resolvedToken = pageData.access_token;
-            pages.push({ id: envPageId, name: pageData.name || 'Líder Imobiliária', access_token: resolvedToken });
+            pages.push({ id: envPageId, name: pageData.name || 'RM Home Imobiliária', access_token: resolvedToken });
           }
         }
       } catch (err) {
@@ -60,13 +60,13 @@ export async function GET() {
 
       // Fallback: se a API não retornou token filho, tentar usar o próprio token fornecido
       if (!pages.some(p => p.id === envPageId)) {
-        pages.push({ id: envPageId, name: 'Líder Imobiliária', access_token: resolvedToken });
+        pages.push({ id: envPageId, name: 'RM Home Imobiliária', access_token: resolvedToken });
       }
     }
 
     // Se nenhuma página foi detectada, criar fallback direto
     if (pages.length === 0) {
-      pages.push({ id: envPageId, name: 'Líder Imobiliária', access_token: rawToken });
+      pages.push({ id: envPageId, name: 'RM Home Imobiliária', access_token: rawToken });
     }
 
     // 2. Carregar dados de usuários e estado do Round-Robin UMA ÚNICA VEZ fora dos loops

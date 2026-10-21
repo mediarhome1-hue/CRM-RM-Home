@@ -51,7 +51,7 @@ export async function POST(req: Request) {
 
     // Enviar o e-mail
     const info = await transporter.sendMail({
-      from: `"CRM Líder" <${smtpUser}>`,
+      from: `"CRM RM Home" <${smtpUser}>`,
       to,
       subject,
       html,

@@ -1382,8 +1382,8 @@ export default function Dashboard() {
           </button>
           <div className="relative w-[100px] h-[32px]">
             <Image 
-              src="/Novo Logotipo Lider Azul.svg" 
-              alt="Líder Imobiliária" 
+              src="/logotipo-rm-home.png" 
+              alt="RM Home Imobiliária" 
               fill 
               className="object-contain object-left" 
             />
@@ -1408,8 +1408,8 @@ export default function Dashboard() {
         <div className="hidden md:flex p-6 border-b border-slate-200/60 items-center justify-between">
           <div className="relative w-[120px] h-[40px]">
             <Image 
-              src="/Novo Logotipo Lider Azul.svg" 
-              alt="Líder Imobiliária" 
+              src="/logotipo-rm-home.png" 
+              alt="RM Home Imobiliária" 
               fill 
               className="object-contain object-left" 
             />
@@ -1505,7 +1505,7 @@ export default function Dashboard() {
             href="/"
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 text-xs font-bold transition-all shadow-xs"
           >
-            Acessar Site Líder
+            Acessar Site RM Home
           </a>
           <button 
             onClick={handleLogout}
@@ -1592,7 +1592,7 @@ export default function Dashboard() {
                             {onlineBrokers.length > 0 ? (
                               onlineBrokers.map(b => (
                                 <div key={b.id} className="flex items-center gap-2.5">
-                                  <img src={b.avatar || '/Novo Logotipo Lider Azul.svg'} alt={b.name} className="w-7 h-7 rounded-full object-cover border border-green-500/25" />
+                                  <img src={b.avatar || '/logotipo-rm-home.png'} alt={b.name} className="w-7 h-7 rounded-full object-cover border border-green-500/25" />
                                   <div className="overflow-hidden flex-1 min-w-0">
                                     <p className="text-xs font-bold text-slate-800 truncate">{b.name}</p>
                                     <span className="text-[9px] text-green-600 font-bold uppercase tracking-wider">● Online no CRM</span>
@@ -1619,7 +1619,7 @@ export default function Dashboard() {
                             {onlineLeaders.length > 0 ? (
                               onlineLeaders.map(l => (
                                 <div key={l.id} className="flex items-center gap-2.5">
-                                  <img src={l.avatar || '/Novo Logotipo Lider Azul.svg'} alt={l.name} className="w-7 h-7 rounded-full object-cover border border-blue-500/25" />
+                                  <img src={l.avatar || '/logotipo-rm-home.png'} alt={l.name} className="w-7 h-7 rounded-full object-cover border border-blue-500/25" />
                                   <div className="overflow-hidden flex-1 min-w-0">
                                     <p className="text-xs font-bold text-slate-800 truncate">{l.name}</p>
                                     <span className="text-[9px] text-blue-600 font-bold uppercase tracking-wider">
@@ -3053,7 +3053,7 @@ export default function Dashboard() {
                         >
                           <div>
                             <h3 className="text-md font-bold text-slate-800 mb-1">Notificações e Avisos</h3>
-                            <p className="text-slate-500 text-xs">Controle como você recebe avisos importantes do CRM Líder.</p>
+                            <p className="text-slate-500 text-xs">Controle como você recebe avisos importantes do CRM RM Home.</p>
                           </div>
 
                           <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-5 flex items-center justify-between shadow-xs">
@@ -3194,7 +3194,7 @@ export default function Dashboard() {
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
                 <div className="grid grid-cols-2 gap-4">
                   <a 
-                    href={`https://wa.me/55${selectedLead.phone.replace(/\D/g, '')}?text=Olá ${selectedLead.name.split(' ')[0]}, aqui é o consultor da Líder Imobiliária. Vi que demonstrou interesse no ${selectedLead.propertyName}!`} 
+                    href={`https://wa.me/55${selectedLead.phone.replace(/\D/g, '')}?text=Olá ${selectedLead.name.split(' ')[0]}, aqui é o consultor da RM Home Imobiliária. Vi que demonstrou interesse no ${selectedLead.propertyName}!`} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="flex items-center justify-center gap-2 p-3.5 bg-green-600 hover:bg-green-500 rounded-xl font-bold text-xs text-white transition-all shadow-md"
@@ -3721,7 +3721,7 @@ Clique abaixo para conversar:`}
 
               <div className="flex gap-2">
                 <a 
-                  href={`https://wa.me/55${simLead.phone.replace(/\D/g, '')}?text=Olá ${simLead.name.split(' ')[0]}, vi que demonstrou interesse no ${simLead.prop} pelo site da Líder!`}
+                  href={`https://wa.me/55${simLead.phone.replace(/\D/g, '')}?text=Olá ${simLead.name.split(' ')[0]}, vi que demonstrou interesse no ${simLead.prop} pelo site da RM Home!`}
                   onClick={() => {
                     setShowNotificationSim(false);
                     setSimLead(null);
