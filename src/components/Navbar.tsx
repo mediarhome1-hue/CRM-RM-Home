@@ -30,7 +30,6 @@ const Navbar = ({ variant = 'default' }: { variant?: 'default' | 'transparent' }
         {/* Desktop Menu Capsule */}
         <div className="hidden md:flex items-center bg-[#0a44e9] rounded-2xl px-2 py-2 shadow-lg border border-white/10">
           <NavLink href="#quem-somos">Sobre</NavLink>
-          <NavLink href="#eventos">Eventos</NavLink>
           <NavLink href="/#imoveis">Imóveis</NavLink>
           <NavLink href="#promocoes">Promoções</NavLink>
           <div className="w-[1px] h-6 bg-white/20 mx-2" />
@@ -50,7 +49,6 @@ const Navbar = ({ variant = 'default' }: { variant?: 'default' | 'transparent' }
       {isMobileMenuOpen && (
         <div className="md:hidden absolute top-full left-0 right-0 bg-white border-b border-gray-100 shadow-xl py-4 px-6 flex flex-col gap-4">
           <MobileNavLink href="#quem-somos" onClick={() => setIsMobileMenuOpen(false)}>Sobre</MobileNavLink>
-          <MobileNavLink href="#eventos" onClick={() => setIsMobileMenuOpen(false)}>Eventos</MobileNavLink>
           <MobileNavLink href="/#imoveis" onClick={() => setIsMobileMenuOpen(false)}>Imóveis</MobileNavLink>
           <MobileNavLink href="#promocoes" onClick={() => setIsMobileMenuOpen(false)}>Promoções</MobileNavLink>
           <div className="h-[1px] bg-gray-100 w-full my-2" />
