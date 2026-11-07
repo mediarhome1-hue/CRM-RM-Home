@@ -13,7 +13,7 @@
   --border: #e9ecef;
   --radius: 1rem;
   --shadow: 0 10px 30px -10px rgba(49, 89, 193, 0.2);
-  --font-outfit: 'Outfit', sans-serif;
+  --font-outfit: var(--font-dm-sans), 'DM Sans', sans-serif;
 }
 
 * {
@@ -23,7 +23,7 @@
 }
 
 body {
-  font-family: var(--font-outfit);
+  font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
   background-color: var(--background);
   color: var(--foreground);
   line-height: 1.6;

@@ -1,78 +1,44 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import { Menu, X } from 'lucide-react';
 
 const Navbar = ({ variant = 'default' }: { variant?: 'default' | 'transparent' }) => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  const isTransparent = variant === 'transparent';
-  const navBgClass = isTransparent ? 'bg-transparent' : 'bg-white/90 backdrop-blur-md border-b border-gray-100';
-  const menuBtnClass = isTransparent ? 'text-white hover:bg-white/10' : 'text-primary hover:bg-gray-100';
-  const logoSrc = isTransparent ? '/logotipo-rm-home-branco.png' : '/logotipo-rm-home.png';
-
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 py-4 md:py-6 transition-all ${navBgClass}`}>
-      <div className="max-w-[1440px] mx-auto px-6 md:px-12 flex items-center justify-between">
-        {/* Logo */}
-        <Link href="/" className="relative w-[140px] h-[45px] md:w-[240px] md:h-[80px]">
-          <Image 
-            src={logoSrc} 
-            alt="RM Home Imobiliária" 
-            fill
-            className="object-contain object-left"
-            priority
-          />
-        </Link>
-
-        {/* Desktop Menu Capsule */}
-        <div className="hidden md:flex items-center bg-[#0a44e9] rounded-2xl px-2 py-2 shadow-lg border border-white/10">
-          <NavLink href="#quem-somos">Sobre</NavLink>
-          <NavLink href="/#imoveis">Imóveis</NavLink>
-          <NavLink href="#promocoes">Promoções</NavLink>
-          <div className="w-[1px] h-6 bg-white/20 mx-2" />
-          <NavLink href="/login" className="font-bold">Login</NavLink>
-        </div>
-
-        {/* Mobile Menu Toggle Button */}
-        <button 
-          className={`md:hidden p-2 rounded-lg transition-colors ${menuBtnClass}`}
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        >
-          {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
-        </button>
-      </div>
-
-      {/* Mobile Menu Dropdown */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden absolute top-full left-0 right-0 bg-white border-b border-gray-100 shadow-xl py-4 px-6 flex flex-col gap-4">
-          <MobileNavLink href="#quem-somos" onClick={() => setIsMobileMenuOpen(false)}>Sobre</MobileNavLink>
-          <MobileNavLink href="/#imoveis" onClick={() => setIsMobileMenuOpen(false)}>Imóveis</MobileNavLink>
-          <MobileNavLink href="#promocoes" onClick={() => setIsMobileMenuOpen(false)}>Promoções</MobileNavLink>
-          <div className="h-[1px] bg-gray-100 w-full my-2" />
-          <MobileNavLink href="/login" onClick={() => setIsMobileMenuOpen(false)} className="text-primary font-bold">Login</MobileNavLink>
-        </div>
-      )}
-    </nav>
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 flex justify-center px-4 pt-4 sm:pt-6 md:pt-7 pointer-events-none transition-all ${
+        variant === 'transparent' ? 'bg-transparent' : ''
+      }`}
+    >
+      <nav
+        aria-label="Navegação principal"
+        className="pointer-events-auto inline-flex items-center justify-center bg-[#001638] text-[#eaeaea] rounded-[14px] sm:rounded-[18px] px-4 py-2.5 sm:px-7 sm:py-3 md:px-10 md:py-3.5 shadow-lg border border-white/5"
+      >
+        <NavLink href="/#quem-somos">SOBRE</NavLink>
+        <NavLink href="/#imoveis">IMÓVEIS</NavLink>
+        <NavLink href="/promocoes">PROMOÇÕES</NavLink>
+        <span
+          aria-hidden="true"
+          className="w-[1.5px] h-4 sm:h-5 bg-[#eaeaea]/80 mx-2.5 sm:mx-4 md:mx-6 shrink-0"
+        />
+        <NavLink href="/login">LOGIN</NavLink>
+      </nav>
+    </header>
   );
 };
 
-const NavLink = ({ href, children, className = "" }: { href: string, children: React.ReactNode, className?: string }) => (
-  <Link 
-    href={href} 
-    className={`px-6 py-3 text-white text-[15px] font-medium hover:text-white/80 transition-colors ${className}`}
-  >
-    {children}
-  </Link>
-);
-
-const MobileNavLink = ({ href, children, onClick, className = "" }: { href: string, children: React.ReactNode, onClick: () => void, className?: string }) => (
-  <Link 
-    href={href} 
-    onClick={onClick}
-    className={`block py-3 text-[16px] text-gray-800 font-medium border-b border-gray-50 last:border-0 ${className}`}
+const NavLink = ({
+  href,
+  children,
+  className = '',
+}: {
+  href: string;
+  children: React.ReactNode;
+  className?: string;
+}) => (
+  <Link
+    href={href}
+    className={`px-2 sm:px-4 md:px-5 py-0.5 text-[#eaeaea] text-[11px] sm:text-[13px] md:text-[15px] lg:text-[16px] font-normal tracking-[0.04em] uppercase hover:text-[#d4b036] transition-colors whitespace-nowrap ${className}`}
   >
     {children}
   </Link>
