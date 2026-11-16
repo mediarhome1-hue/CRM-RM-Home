@@ -2286,13 +2286,13 @@ export default function Dashboard() {
                           <input
                             type="text"
                             readOnly
-                            value="https://liderimobiliariape.com.br/api/whatsapp/webhook"
+                            value="https://www.rmhomeimobiliaria.com/api/whatsapp/webhook"
                             className="flex-1 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-[10px] font-mono text-slate-600 select-all focus:outline-none"
                           />
                           <button
                             type="button"
                             onClick={() => {
-                              navigator.clipboard.writeText("https://liderimobiliariape.com.br/api/whatsapp/webhook");
+                              navigator.clipboard.writeText("https://www.rmhomeimobiliaria.com/api/whatsapp/webhook");
                               alert("URL do Webhook copiada!");
                             }}
                             className="px-3 bg-[#3159C1] hover:bg-[#234294] text-white rounded-lg font-bold text-[10px]"
@@ -2368,13 +2368,13 @@ export default function Dashboard() {
                           <input
                             type="text"
                             readOnly
-                            value="https://liderimobiliariape.com.br/api/facebook/webhook"
+                            value="https://www.rmhomeimobiliaria.com/api/facebook/webhook"
                             className="flex-1 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-[10px] font-mono text-slate-600 select-all focus:outline-none"
                           />
                           <button
                             type="button"
                             onClick={() => {
-                              navigator.clipboard.writeText("https://liderimobiliariape.com.br/api/facebook/webhook");
+                              navigator.clipboard.writeText("https://www.rmhomeimobiliaria.com/api/facebook/webhook");
                               alert("URL do Webhook do Facebook copiada!");
                             }}
                             className="px-3 bg-[#3159C1] hover:bg-[#234294] text-white rounded-lg font-bold text-[10px]"

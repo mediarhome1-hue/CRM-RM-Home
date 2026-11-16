@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { DEFAULT_SUPABASE_KEY, DEFAULT_SUPABASE_URL } from '@/utils/supabaseClient';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl || 'https://placeholder-url.supabase.co', supabaseKey || 'placeholder-key');
+const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+const supabaseUrl = rawUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '');
+const supabaseKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY ||
+  DEFAULT_SUPABASE_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -64,9 +71,14 @@ export async function GET(req: Request) {
     const token = searchParams.get('hub.verify_token');
     const challenge = searchParams.get('hub.challenge');
 
-    const verifyToken = process.env.FACEBOOK_VERIFY_TOKEN || 'crm_lider_facebook_token';
+    const verifyToken = process.env.FACEBOOK_VERIFY_TOKEN || 'crm_rm_home_facebook_token';
+    const validTokens = new Set([
+      verifyToken,
+      'crm_rm_home_facebook_token',
+      'crm_lider_facebook_token',
+    ]);
 
-    if (mode === 'subscribe' && token === verifyToken) {
+    if (mode === 'subscribe' && token && validTokens.has(token)) {
       console.log('Webhook do Facebook verificado com sucesso pelo Meta.');
       return new Response(challenge, { status: 200 });
     }
