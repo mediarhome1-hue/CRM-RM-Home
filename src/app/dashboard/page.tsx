@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { 
   getUsers, createUser, updateUser, deleteUser, toggleUserStatus, pushUserToSupabase,
+  registerBrokerUser, updateBrokerUser,
   getLeads, saveLeads, addLeadManual, pushLeadToSupabase,
   updateLeadStatus, addLeadNote, addLeadTask, toggleLeadTask, deleteLead,
   runTransbordoCheck, reassignLead, logUserOffline, isUserActiveOnline,
@@ -990,11 +991,11 @@ export default function Dashboard() {
     setIsCreatingUser(true);
 
     try {
-      const newUserCreated = createUser({
+      const result = await registerBrokerUser({
         name: newUserName,
         email: newUserEmail,
         phone: newUserPhone,
-        password: newUserPassword,
+        password: newUserPassword || '123',
         role: newUserRole,
         avatar: newUserRole === 'manager' 
           ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150' 
@@ -1006,20 +1007,22 @@ export default function Dashboard() {
         bio: newUserBio || undefined
       });
 
-      // Garantir persistencia e atualizar lista de usuarios
-      await pushUserToSupabase(newUserCreated);
+      if (!result.success || !result.user) {
+        alert(result.error || 'Não foi possível cadastrar o corretor no banco de dados.');
+        return;
+      }
+
+      const newUserCreated = result.user;
       setUsers(getUsers());
 
       // Disparar e-mail de boas-vindas com dados de acesso e link da plataforma em segundo plano
-      if (newUserCreated) {
-        import('../../utils/emailService').then(({ sendWelcomeEmail }) => {
-          sendWelcomeEmail(newUserCreated, newUserPassword || '123').catch(err => {
-            console.warn('Aviso: Falha ao enviar e-mail de boas-vindas:', err);
-          });
+      import('../../utils/emailService').then(({ sendWelcomeEmail }) => {
+        sendWelcomeEmail(newUserCreated, newUserPassword || '123').catch(err => {
+          console.warn('Aviso: Falha ao enviar e-mail de boas-vindas:', err);
         });
-      }
+      });
 
-      alert(`Usuário "${newUserName}" cadastrado com sucesso no CRM! Um e-mail de boas-vindas foi enviado para ${newUserEmail}.`);
+      alert(`Usuário "${newUserCreated.name}" cadastrado com sucesso no banco de dados do CRM! Um e-mail de boas-vindas foi enviado para ${newUserCreated.email}.`);
 
       setNewUserName('');
       setNewUserEmail('');
@@ -1060,7 +1063,7 @@ export default function Dashboard() {
     setEditUserAvatar(user.avatar || '');
   };
 
-  const handleEditUserSubmit = (e: React.FormEvent) => {
+  const handleEditUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingUser || !editUserName || !editUserEmail || !editUserPhone) return;
 
@@ -1082,8 +1085,14 @@ export default function Dashboard() {
 
     const isPasswordChanged = editUserPassword && editUserPassword !== editingUser.password;
 
-    const updatedUsers = updateUser(editingUser.id, updates);
-    setUsers(getUsers());
+    const result = await updateBrokerUser(editingUser.id, updates);
+    if (!result.success) {
+      alert(result.error || 'Erro ao atualizar usuário no banco de dados.');
+      return;
+    }
+
+    const updatedUsers = result.users;
+    setUsers(updatedUsers);
     
     // Se o próprio administrador logado for editado, atualizamos seus dados locais
     if (editingUser.id === currentUser?.id) {
@@ -1978,7 +1987,7 @@ export default function Dashboard() {
                       <input
                         type="email"
                         required
-                        placeholder="Ex: pedro@liderimobiliaria.com.br"
+                        placeholder="Ex: pedro@rmhomeimobiliaria.com"
                         value={newUserEmail}
                         onChange={(e) => setNewUserEmail(e.target.value)}
                         className="w-full px-4 py-3 bg-gray-50 border border-slate-200 rounded-xl text-sm focus:ring-1 focus:ring-[#3159C1] focus:outline-none"
@@ -2053,11 +2062,11 @@ export default function Dashboard() {
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-slate-600 block">Biografia / Histórico (Opcional)</label>
                       <textarea
-                        placeholder="Ex: Especialista em imóveis de luxo na Zona Sul..."
+                        placeholder="Ex: Especialista em imóveis na Região Metropolitana do Recife..."
                         value={newUserBio}
                         onChange={(e) => setNewUserBio(e.target.value)}
                         rows={3}
-                        className="w-full px-4 py-3 bg-gray-50 border border-slate-200 rounded-xl text-sm focus:ring-1 focus:ring-[#3159C1] focus:outline-none resize-none font-medium text-slate-300"
+                        className="w-full px-4 py-3 bg-gray-50 border border-slate-200 rounded-xl text-sm focus:ring-1 focus:ring-[#3159C1] focus:outline-none resize-none font-medium text-slate-800"
                       />
                     </div>
 

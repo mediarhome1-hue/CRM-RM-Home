@@ -28,7 +28,39 @@ export interface SupabaseStatus {
   lastChecked?: string;
 }
 
-const CRM_CACHE_VERSION = 'v2.1.0';
+const CRM_CACHE_VERSION = 'v3.0.0';
+
+// IDs legados que foram removidos permanentemente para deixar apenas a Diretoria (Joseph Nascimento)
+export const LEGACY_REMOVED_USER_IDS = new Set([
+  'daiany-martins',
+  'matheus-souto',
+  'samira-martins',
+  'izabel-cristina',
+  'amaro-bispo',
+  'etiene-maria',
+  'edson-santos',
+  'jose-edson',
+  'user-1786385737376',
+  'user-1785958335300',
+  'user-1785956983832',
+  'user-1786992379920',
+  'user-1787064918108',
+  'user-1787081367783',
+  'user-1786982729611',
+  'user-1786989594853',
+  'user-1787077914481',
+  'user-1781190796255',
+  'user-1786978674117',
+]);
+
+export const isLegacyRemovedUser = (u?: Partial<UserCRM> | null): boolean => {
+  if (!u || !u.id) return false;
+  if (u.id === 'diretoria-lider') return false;
+  if (LEGACY_REMOVED_USER_IDS.has(u.id)) return true;
+  const email = (u.email || '').toLowerCase().trim();
+  if (email.endsWith('@liderimobiliaria.com.br')) return true;
+  return false;
+};
 
 let currentSupabaseStatus: SupabaseStatus = {
   isConfigured: isSupabaseConfigured,
@@ -106,21 +138,14 @@ export interface Message {
   status?: string;
 }
 
-export const BROKER_ID_ALIASES: Record<string, string> = {
-  'amaro-bispo': 'user-1786385737376',
-  'izabel-cristina': 'user-1785958335300',
-  'samira-martins': 'user-1785956983832',
-  'etiene-maria': 'user-1786992379920',
-  'edson-santos': 'user-1787064918108',
-  'jose-edson': 'user-1787064918108',
-};
+export const BROKER_ID_ALIASES: Record<string, string> = {};
 
 export const resolveBrokerId = (id: string | null | undefined): string => {
   if (!id) return "";
   return BROKER_ID_ALIASES[id] || id;
 };
 
-// Usuários iniciais padrão com IDs oficiais sincronizados com Supabase
+// Usuário inicial padrão (apenas Direção - Joseph Nascimento)
 export const INITIAL_USERS: UserCRM[] = [
   {
     id: 'diretoria-lider',
@@ -132,98 +157,9 @@ export const INITIAL_USERS: UserCRM[] = [
     password: '81546223*#',
     isWhatsAppConnected: false,
     status: 'online',
+    creci: 'PE 56789-J',
+    bio: 'Direção geral da RM Home Imobiliária. Compromisso permanente com a ética, liderança e excelência em negócios imobiliários.',
     birthdate: '1990-12-26',
-    emailNotifications: true
-  },
-  {
-    id: 'user-1786385737376',
-    name: 'Amaro Bispo',
-    avatar: '/corretor-amaro-bispo.jpg',
-    role: 'broker',
-    email: 'amaro@liderimobiliaria.com.br',
-    phone: '+55 81 98324-1960',
-    password: '123',
-    isWhatsAppConnected: false,
-    status: 'offline',
-    creci: 'CRECI 21226',
-    emailNotifications: true
-  },
-  {
-    id: 'daiany-martins',
-    name: 'Daiany Martins',
-    avatar: '/corretor-daiany.jpg',
-    role: 'broker',
-    email: 'daiany@liderimobiliaria.com.br',
-    phone: '+55 81 98184-4018',
-    password: '123',
-    isWhatsAppConnected: false,
-    status: 'offline',
-    creci: 'CRECI 21245',
-    emailNotifications: true
-  },
-  {
-    id: 'user-1785958335300',
-    name: 'Izabel Cristina',
-    avatar: '/corretor-izabel-cristina.jpg',
-    role: 'broker',
-    email: 'izabel@liderimobiliaria.com.br',
-    phone: '+55 81 98611-6336',
-    password: '123',
-    isWhatsAppConnected: false,
-    status: 'offline',
-    creci: 'CRECI 22925',
-    emailNotifications: true
-  },
-  {
-    id: 'matheus-souto',
-    name: 'Matheus Souto',
-    avatar: '/corretor-matheus-souto.jpg',
-    role: 'broker',
-    email: 'matheus@liderimobiliaria.com.br',
-    phone: '+55 81 98864-3830',
-    password: '123',
-    isWhatsAppConnected: false,
-    status: 'offline',
-    creci: 'CRECI 21612',
-    emailNotifications: true
-  },
-  {
-    id: 'user-1785956983832',
-    name: 'Samira Martins',
-    avatar: '/corretor-samira-martins.jpg',
-    role: 'broker',
-    email: 'samira@liderimobiliaria.com.br',
-    phone: '+55 81 97322-5711',
-    password: '123',
-    isWhatsAppConnected: false,
-    status: 'offline',
-    creci: 'CRECI 23592',
-    emailNotifications: true
-  },
-  {
-    id: 'user-1786992379920',
-    name: 'Etiene Maria',
-    avatar: '/corretor-etiene-maria.jpg',
-    role: 'broker',
-    email: 'etiene@liderimobiliaria.com.br',
-    phone: '+55 81 99215-5537',
-    password: '123',
-    isWhatsAppConnected: false,
-    status: 'offline',
-    creci: 'CRECI 20225',
-    emailNotifications: true
-  },
-  {
-    id: 'user-1787064918108',
-    name: 'José Edson dos Santos',
-    avatar: '/corretor-edson-santos.jpg',
-    role: 'broker',
-    email: 'edson@liderimobiliaria.com.br',
-    phone: '+55 81 98972-3403',
-    password: '123',
-    isWhatsAppConnected: false,
-    status: 'offline',
-    creci: 'CRECI 22429',
     emailNotifications: true
   }
 ];
@@ -390,8 +326,15 @@ export const syncWithSupabase = async (): Promise<boolean> => {
         }
       } else {
         const mappedUsers = usersData.map(mapUserFromDB);
-        const cleanUsers = mappedUsers.filter(u => u && u.id);
-        localStorage.setItem('lider_crm_users', JSON.stringify(cleanUsers));
+        const legacyToDelete = mappedUsers.filter(u => isLegacyRemovedUser(u));
+        if (legacyToDelete.length > 0) {
+          for (const legacyUser of legacyToDelete) {
+            supabase.from('users_crm').delete().eq('id', legacyUser.id).then();
+          }
+        }
+        const cleanUsers = mappedUsers.filter(u => u && u.id && !isLegacyRemovedUser(u));
+        const finalUsers = cleanUsers.length > 0 ? cleanUsers : INITIAL_USERS;
+        localStorage.setItem('lider_crm_users', JSON.stringify(finalUsers));
         setSupabaseStatus({ isRestricted: false, errorMessage: undefined });
       }
     }
@@ -459,6 +402,29 @@ export const fetchFreshLeads = async (): Promise<Lead[]> => {
 };
 
 export const fetchFreshUsers = async (): Promise<UserCRM[]> => {
+  // 1. Tentar buscar via Backend API (/api/users) para garantir leitura com Service Role / Server-side
+  if (typeof window !== 'undefined') {
+    try {
+      const res = await fetch('/api/users', { cache: 'no-store' });
+      if (res.ok) {
+        const json = await res.json();
+        if (json?.users && Array.isArray(json.users) && json.users.length > 0) {
+          const cleanUsers = json.users.filter((u: any) => u && u.id);
+          try {
+            localStorage.setItem('lider_crm_users', JSON.stringify(cleanUsers));
+          } catch {
+            console.warn('LocalStorage quota limit reached in fetchFreshUsers.');
+          }
+          setSupabaseStatus({ isRestricted: false, errorMessage: undefined });
+          return cleanUsers;
+        }
+      }
+    } catch (apiErr) {
+      console.warn('Fallback de /api/users para cliente Supabase direto:', apiErr);
+    }
+  }
+
+  // 2. Fallback direto via cliente Supabase
   if (!isSupabaseConfigured) return getUsers();
   try {
     const { data, error } = await supabase.from('users_crm').select('*');
@@ -483,20 +449,82 @@ export const fetchFreshUsers = async (): Promise<UserCRM[]> => {
   return getUsers();
 };
 
-export const pushUserToSupabase = async (user: UserCRM) => {
-  if (!isSupabaseConfigured) return;
+const USER_OPTIONAL_DB_COLS = [
+  'birthdate',
+  'email_notifications',
+  'last_online_at',
+  'total_online_time',
+  'creci',
+  'bio',
+  'manager_id',
+];
+
+export const pushUserToSupabase = async (
+  user: UserCRM
+): Promise<{ success: boolean; user?: UserCRM; error?: string }> => {
+  // 1. No navegador, priorizar a rota de backend /api/users para garantir persistência e validação
+  if (typeof window !== 'undefined') {
+    try {
+      const res = await fetch('/api/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(user),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data?.success) {
+        setSupabaseStatus({ isRestricted: false, errorMessage: undefined });
+        return { success: true, user: data.user || user };
+      }
+      if (res.status === 409 || res.status === 400) {
+        return { success: false, error: data?.error || 'Dados inválidos ou e-mail duplicado.' };
+      }
+    } catch (err) {
+      console.warn('Fallback de pushUserToSupabase para conexão direta:', err);
+    }
+  }
+
+  if (!isSupabaseConfigured) {
+    return { success: true, user };
+  }
+
   try {
-    const { error } = await supabase.from('users_crm').upsert(mapUserToDB(user));
-    if (error) {
-      console.error('Erro ao enviar usuário para o Supabase:', error.message, error.details, error.hint);
-      const isQuota = error.message?.includes('exceed_egress_quota') || String(error.code) === '402';
+    let payload: Record<string, any> = mapUserToDB(user);
+    let lastError: any = null;
+
+    for (let attempt = 0; attempt <= USER_OPTIONAL_DB_COLS.length; attempt++) {
+      const { error } = await supabase.from('users_crm').upsert(payload, { onConflict: 'id' });
+      if (!error) {
+        lastError = null;
+        break;
+      }
+      lastError = error;
+      const errMsg = `${error.message || ''} ${error.details || ''} ${error.hint || ''}`;
+      const missingCol = USER_OPTIONAL_DB_COLS.find(
+        col =>
+          col in payload &&
+          (errMsg.includes(`'${col}'`) || errMsg.includes(`"${col}"`) || errMsg.includes(`.${col}`))
+      );
+      if (missingCol) {
+        const nextPayload = { ...payload };
+        delete nextPayload[missingCol];
+        payload = nextPayload;
+        continue;
+      }
+      break;
+    }
+
+    if (lastError) {
+      console.error('Erro ao enviar usuário para o Supabase:', lastError.message, lastError.details, lastError.hint);
+      const isQuota = lastError.message?.includes('exceed_egress_quota') || String(lastError.code) === '402';
       setSupabaseStatus({
         isRestricted: isQuota,
-        errorMessage: error.message
+        errorMessage: lastError.message
       });
+      return { success: false, error: lastError.message };
     } else {
       console.log('Usuário sincronizado com o Supabase com sucesso:', user.name);
       setSupabaseStatus({ isRestricted: false, errorMessage: undefined });
+      return { success: true, user };
     }
   } catch (e: any) {
     console.error('Falha de rede/conexão ao enviar usuário:', e);
@@ -505,6 +533,7 @@ export const pushUserToSupabase = async (user: UserCRM) => {
       isRestricted: isQuota,
       errorMessage: e?.message || 'Falha de rede/conexão com o banco de dados'
     });
+    return { success: false, error: e?.message || 'Falha de rede/conexão com o banco de dados' };
   }
 };
 
@@ -561,18 +590,12 @@ export const getUsers = (): UserCRM[] => {
     try {
       const parsed = JSON.parse(stored);
       if (parsed && Array.isArray(parsed) && parsed.length > 0) {
-        // IDs válidos permitidos (Oficiais + novos criados com id user-*)
-        const validOfficialIds = ['diretoria-lider', 'daiany-martins', 'matheus-souto', 'samira-martins', 'izabel-cristina', 'amaro-bispo', 'etiene-maria', 'edson-santos', 'user-1786385737376', 'user-1785958335300', 'user-1785956983832', 'user-1786992379920', 'user-1787064918108', 'user-1787081367783', 'user-1786982729611', 'user-1786989594853', 'user-1787077914481', 'user-1781190796255', 'user-1786978674117'];
-        const hasLegacy = parsed.some((u: any) => 
-          !validOfficialIds.includes(u.id) && !u.id.startsWith('user-')
+        const clean = parsed.filter(
+          (u: any) => u && typeof u.id === 'string' && u.id.trim().length > 0 && !isLegacyRemovedUser(u)
         );
-
-        if (!hasLegacy) {
-          return parsed.filter((u: any) => validOfficialIds.includes(u.id) || u.id.startsWith('user-'));
+        if (clean.length > 0) {
+          return clean;
         }
-        console.log('Detectado cache antigo com corretores obsoletos. Invalidate & Reset automático...');
-        localStorage.removeItem('lider_crm_users');
-        localStorage.removeItem('lider_leads');
       }
     } catch {
       localStorage.removeItem('lider_crm_users');
@@ -595,7 +618,10 @@ export const createUser = (userData: Omit<UserCRM, 'id' | 'isWhatsAppConnected' 
   const users = getUsers();
   const newUser: UserCRM = {
     ...userData,
-    id: `user-${Date.now()}`,
+    id: `user-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+    email: userData.email.trim().toLowerCase(),
+    name: userData.name.trim(),
+    phone: userData.phone.trim(),
     isWhatsAppConnected: false,
     status: 'offline'
   };
@@ -604,6 +630,41 @@ export const createUser = (userData: Omit<UserCRM, 'id' | 'isWhatsAppConnected' 
 
   pushUserToSupabase(newUser);
   return newUser;
+};
+
+/**
+ * Cadastra um novo corretor/usuário diretamente pelo backend (/api/users) com validação de banco de dados.
+ */
+export const registerBrokerUser = async (
+  userData: Omit<UserCRM, 'id' | 'isWhatsAppConnected' | 'status'>
+): Promise<{ success: boolean; user?: UserCRM; error?: string }> => {
+  try {
+    const res = await fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(userData),
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok || !data?.success) {
+      return {
+        success: false,
+        error: data?.error || `Falha ao cadastrar corretor (HTTP ${res.status}).`,
+      };
+    }
+
+    const createdUser: UserCRM = data.user;
+    const current = getUsers().filter(u => u.id !== createdUser.id);
+    current.push(createdUser);
+    saveUsers(current);
+
+    return { success: true, user: createdUser };
+  } catch (err: any) {
+    console.error('Erro de rede ao cadastrar corretor via /api/users:', err);
+    const fallbackUser = createUser(userData);
+    return { success: true, user: fallbackUser };
+  }
 };
 
 export const updateUser = (userId: string, updates: Partial<UserCRM>): UserCRM[] => {
@@ -619,11 +680,56 @@ export const updateUser = (userId: string, updates: Partial<UserCRM>): UserCRM[]
   return users;
 };
 
+/**
+ * Atualiza um corretor/usuário validando no backend (/api/users) e sincronizando o cache local.
+ */
+export const updateBrokerUser = async (
+  userId: string,
+  updates: Partial<UserCRM>
+): Promise<{ success: boolean; user?: UserCRM; users: UserCRM[]; error?: string }> => {
+  try {
+    const res = await fetch('/api/users', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: userId, ...updates }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok || !data?.success) {
+      return {
+        success: false,
+        users: getUsers(),
+        error: data?.error || `Erro ao atualizar usuário (HTTP ${res.status}).`,
+      };
+    }
+
+    const updatedUser: UserCRM = data.user;
+    const users = getUsers().map(u => (u.id === userId ? { ...u, ...updatedUser } : u));
+    saveUsers(users);
+    return { success: true, user: updatedUser, users };
+  } catch (err: any) {
+    console.warn('Fallback local em updateBrokerUser:', err);
+    const users = updateUser(userId, updates);
+    return {
+      success: true,
+      user: users.find(u => u.id === userId),
+      users,
+    };
+  }
+};
+
 export const deleteUser = (userId: string): UserCRM[] => {
   const users = getUsers().filter(u => u.id !== userId);
   saveUsers(users);
   
-  if (isSupabaseConfigured) {
+  if (typeof window !== 'undefined') {
+    fetch(`/api/users?id=${encodeURIComponent(userId)}`, { method: 'DELETE' }).catch(() => {
+      if (isSupabaseConfigured) {
+        supabase.from('users_crm').delete().eq('id', userId).then();
+      }
+    });
+  } else if (isSupabaseConfigured) {
     supabase.from('users_crm').delete().eq('id', userId).then();
   }
   return users;

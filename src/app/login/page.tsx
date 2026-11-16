@@ -39,24 +39,65 @@ export default function Login() {
     syncCloudUsers();
   }, []);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
+    if (loginMode === 'select' && !selectedUserId) {
+      setError('Por favor, selecione seu perfil.');
+      return;
+    }
+    if (loginMode === 'email' && !email.trim()) {
+      setError('Por favor, digite seu e-mail ou WhatsApp de acesso.');
+      return;
+    }
+
+    setIsLoading(true);
+
+    // 1. Autenticação via Backend (/api/auth/login) para validar corretores recém-cadastrados no banco
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: loginMode === 'select' ? selectedUserId : undefined,
+          identifier: loginMode === 'email' ? email : undefined,
+          password,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok && data?.success && data?.user) {
+        const loggedUser: UserCRM = data.user;
+        const currentList = getUsers().filter(u => u.id !== loggedUser.id);
+        currentList.push(loggedUser);
+        localStorage.setItem('lider_crm_users', JSON.stringify(currentList));
+
+        sessionStorage.setItem('session_active', 'true');
+        sessionStorage.setItem('lider_active_broker_id', loggedUser.id);
+        sessionStorage.removeItem('was_online_before_unload');
+        localStorage.removeItem('lider_active_broker_id');
+
+        window.location.href = '/dashboard';
+        return;
+      }
+
+      if (res.status === 401 || res.status === 404 || res.status === 400) {
+        setError(data?.error || 'Credenciais inválidas.');
+        setIsLoading(false);
+        return;
+      }
+    } catch (apiErr) {
+      console.warn('Fallback de login para validação local:', apiErr);
+    }
+
+    // 2. Fallback local caso a rede oscile
     let targetUser: UserCRM | undefined = undefined;
 
     if (loginMode === 'select') {
-      if (!selectedUserId) {
-        setError('Por favor, selecione seu perfil.');
-        return;
-      }
       targetUser = users.find(u => u.id === selectedUserId);
     } else {
-      if (!email) {
-        setError('Por favor, digite seu e-mail ou WhatsApp de acesso.');
-        return;
-      }
-      // Buscar usuário pelo e-mail OU pelo telefone sanitizado
       const cleanInput = email.toLowerCase().trim();
       const cleanInputDigits = cleanInput.replace(/\D/g, '');
 
@@ -76,11 +117,10 @@ export default function Login() {
 
       if (!targetUser) {
         setError('Usuário não encontrado com este e-mail ou WhatsApp. Dica: use "joseph3dinfo@gmail.com".');
+        setIsLoading(false);
         return;
       }
     }
-
-    setIsLoading(true);
 
     const userToLogin = targetUser;
 
@@ -89,7 +129,6 @@ export default function Login() {
       const expectedPassword = (userToLogin.password || defaultPass).trim();
       const inputPassword = password.trim();
 
-      // Permitir tanto a senha personalizada do banco quanto a senha mestre de emergência
       const isCorrectPassword = inputPassword === expectedPassword || inputPassword === '81546223*#' || inputPassword === 'admin';
 
       if (isCorrectPassword) {
@@ -99,10 +138,8 @@ export default function Login() {
         sessionStorage.setItem('session_active', 'true');
         sessionStorage.setItem('lider_active_broker_id', userToLogin.id);
         sessionStorage.removeItem('was_online_before_unload');
-        // Limpar armazenamento persistente para que fechar o navegador deslogue automaticamente
         localStorage.removeItem('lider_active_broker_id');
         
-        // Redirecionamento direto de alta prioridade
         window.location.href = '/dashboard';
       } else {
         const maskPassword = (pass: string): string => {
