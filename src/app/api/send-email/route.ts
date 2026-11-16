@@ -12,7 +12,7 @@ export async function POST(req: Request) {
       );
     }
 
-    let smtpUser = (process.env.SMTP_USER || 'medialiderimobiliaria@gmail.com').trim().replace(/^['"]|['"]$/g, '');
+    let smtpUser = (process.env.SMTP_USER || 'mediarhome1@gmail.com').trim().replace(/^['"]|['"]$/g, '');
     let smtpPassword = process.env.SMTP_PASSWORD;
 
     if (!smtpPassword) {

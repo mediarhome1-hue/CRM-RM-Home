@@ -261,7 +261,7 @@ export async function POST(req: Request) {
 
       if (body?.sendWelcome !== false) {
         try {
-          const smtpUser = (process.env.SMTP_USER || 'medialiderimobiliaria@gmail.com')
+          const smtpUser = (process.env.SMTP_USER || 'mediarhome1@gmail.com')
             .trim()
             .replace(/^['"]|['"]$/g, '');
           const smtpPassword = (process.env.SMTP_PASSWORD || '')
