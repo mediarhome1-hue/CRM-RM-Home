@@ -459,8 +459,13 @@ export default function Dashboard() {
           sessionStorage.setItem('was_online_before_unload', 'true');
 
           // 2. Envia PATCH com sendBeacon e keepalive para garantia em Chrome, Safari, Edge, Firefox e Mobile
-          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-          const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+          const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://wqsnjqjlasjpdvmvhkpa.supabase.co';
+          const supabaseUrl = rawUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/$/, '');
+          const supabaseAnonKey =
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+            process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+            process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY ||
+            'sb_publishable_NU0DqAJ7vQffDIqAHNS6rw_MXf2WYPU';
           if (supabaseUrl && supabaseAnonKey) {
             const url = `${supabaseUrl}/rest/v1/users_crm?id=eq.${user.id}`;
             const payload = JSON.stringify({
