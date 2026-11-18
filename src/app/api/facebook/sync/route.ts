@@ -25,7 +25,7 @@ export async function GET() {
       }, { status: 400 });
     }
 
-    const envPageId = process.env.FACEBOOK_PAGE_ID || process.env.FB_PAGE_ID || process.env.NEXT_PUBLIC_FACEBOOK_PAGE_ID || '648684245476381';
+    const envPageId = process.env.FACEBOOK_PAGE_ID || process.env.FB_PAGE_ID || process.env.NEXT_PUBLIC_FACEBOOK_PAGE_ID || '577188408809838';
 
     // 1. Resolução e Descoberta Inteligente de Páginas e Page Access Tokens
     // O Meta exige Page Access Token para os endpoints /{pageId}/leadgen_forms e /{formId}/leads.

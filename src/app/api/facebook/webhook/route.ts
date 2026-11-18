@@ -112,7 +112,7 @@ export async function POST(req: Request) {
         if (change.field === 'leadgen' && change.value?.leadgen_id) {
           leadChanges.push({
             leadgenId: change.value.leadgen_id,
-            pageId: change.value.page_id || pageId || process.env.FACEBOOK_PAGE_ID || '648684245476381',
+            pageId: change.value.page_id || pageId || process.env.FACEBOOK_PAGE_ID || '577188408809838',
             formId: change.value.form_id || ''
           });
         }
